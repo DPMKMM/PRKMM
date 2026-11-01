@@ -1208,7 +1208,7 @@ TAX_PAGE_HTML = """<!doctype html>
   </main>
 
   <footer>
-    Executive Analytics &amp; Monitoring Portal · Telangana Panchayat Raj &amp; Rural Development
+    Executive Analytics &amp; Monitoring Portal Owned, maintained and updated by DPM Khammam
   </footer>
 
   <script>
