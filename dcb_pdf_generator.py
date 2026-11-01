@@ -272,8 +272,13 @@ def generate_dcb_pdf(
 
     flowables = []
 
-    # Title is placed on Page 1
-    flowables.append(Paragraph(f"Gram Panchayat Wise DCB status as on {report_date_str}", title_style))
+    # Title text based on District level vs Mandal level
+    if is_single_mandal and mandal_name:
+        clean_mandal = mandal_name.strip().title()
+        title_text = f"{clean_mandal} Mandal - Gram Panchayat Wise DCB status as on {report_date_str}"
+    else:
+        clean_dist = district_name.strip().title() if district_name and district_name.lower() not in ("all", "all districts") else "State"
+        title_text = f"{clean_dist} District - Gram Panchayat Wise DCB status as on {report_date_str}"
 
     # Group by Mandal
     mandals = sorted(df_dist["mandal"].unique())
@@ -338,13 +343,15 @@ def generate_dcb_pdf(
                 flowables.append(PageBreak())
             is_first_page = False
 
+            # Every page displays the official title with District or Mandal Name
+            flowables.append(Paragraph(title_text, title_style))
+
             is_last_chunk_of_mandal = (page_idx == num_pages_mandal - 1)
             chunk_size = total_gps - cursor if is_last_chunk_of_mandal else gps_per_page
             chunk = gp_records[cursor : cursor + chunk_size]
 
             # Calculate exact available vertical height to fill the entire page space
-            has_title_here = (len(flowables) == 1)
-            avail_h = 555.27 - (28 if has_title_here else 0) - 14.0
+            avail_h = 555.27 - 28.0 - 14.0
             h_hdr = 22.0
             n_data_and_total = len(chunk) + (1 if is_last_chunk_of_mandal else 0)
             h_row = (avail_h - h_hdr) / float(n_data_and_total)

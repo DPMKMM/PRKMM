@@ -467,14 +467,14 @@ TAX_PAGE_HTML = """<!doctype html>
         <div class="control-group">
           <label class="control-label" for="district-select">1. Select District <span style="color:#c92a2a">*</span></label>
           <select id="district-select">
-            <option value="Khammam">Khammam</option>
+            <option value="" selected disabled>-- Select District --</option>
           </select>
         </div>
 
         <div class="control-group">
           <label class="control-label" for="mandal-select">2. Filter by Mandal</label>
-          <select id="mandal-select">
-            <option value="all">-- All Mandals (Consolidated) --</option>
+          <select id="mandal-select" disabled>
+            <option value="all">-- Select District First --</option>
           </select>
         </div>
 
@@ -482,19 +482,22 @@ TAX_PAGE_HTML = """<!doctype html>
           <label class="control-label" for="search-input">3. Instant Search GP or Mandal</label>
           <input type="text" id="search-input" placeholder="Type Panchayat or Mandal name...">
         </div>
+
+        <div class="control-group" style="justify-content: flex-end;">
+          <button type="button" id="btn-generate-report" class="btn btn-primary" style="padding: 10px 22px; font-weight:700; font-size:0.95rem; height:42px; display:flex; align-items:center; justify-content:center; gap:8px;" onclick="onGenerateReportClick()">
+            <span>⚡</span> Generate Report
+          </button>
+        </div>
       </div>
 
-      <div class="actions-bar">
-        <a id="btn-view-pdf" href="/api/tax/report.pdf?district=Khammam" target="_blank" class="btn btn-pdf">
-          📄 View Official PDF Report ↗
-        </a>
-        <a id="btn-download-pdf" href="/api/tax/download-pdf?district=Khammam" class="btn btn-outline" download>
+      <div class="actions-bar" id="actions-bar" style="display: none;">
+        <a id="btn-download-pdf" href="#" class="btn btn-pdf" download>
           📥 Download PDF Report
         </a>
-        <a id="btn-download-excel" href="/api/tax/download?district=Khammam&format=xlsx" class="btn btn-secondary" download>
+        <a id="btn-download-excel" href="#" class="btn btn-secondary" download>
           📊 Download Consolidated Excel (.xlsx)
         </a>
-        <a id="btn-download-csv" href="/api/tax/download?district=Khammam&format=csv" class="btn btn-outline" download>
+        <a id="btn-download-csv" href="#" class="btn btn-outline" download>
           📥 Download CSV
         </a>
         <button type="button" id="btn-refresh" class="btn btn-outline" onclick="refreshLiveData()">
@@ -553,12 +556,12 @@ TAX_PAGE_HTML = """<!doctype html>
     <!-- PANE 1: Embedded PDF Viewer -->
     <div id="pane-pdf" class="tab-pane active">
       <div class="pdf-viewer-card">
-        <div class="pdf-toolbar">
+        <div class="pdf-toolbar" id="pdf-toolbar" style="display: none;">
           <div class="pdf-toolbar-info">
-            Official 35-Page Departmental Landscape Format · Generated dynamically for <span id="pdf-dist-label">Khammam</span>
+            Official Departmental Landscape Format · Generated for <span id="pdf-dist-label">--</span>
           </div>
           <div style="display:flex; gap:8px;">
-            <a id="btn-fullscreen-pdf" href="/api/tax/report.pdf?district=Khammam" target="_blank" class="btn btn-pdf" style="padding:6px 12px; font-size:0.82rem;">
+            <a id="btn-fullscreen-pdf" href="#" target="_blank" class="btn btn-pdf" style="padding:6px 12px; font-size:0.82rem;">
               ↗ Open in Full Screen / Native Viewer
             </a>
             <button type="button" class="btn btn-outline" style="padding:6px 12px; font-size:0.82rem;" onclick="reloadPdfViewer()">
@@ -566,7 +569,14 @@ TAX_PAGE_HTML = """<!doctype html>
             </button>
           </div>
         </div>
-        <iframe id="pdf-frame" class="pdf-iframe" src="/api/tax/report.pdf?district=Khammam"></iframe>
+        <div id="pdf-placeholder" style="text-align:center; padding:70px 20px; color:#557267;">
+          <div style="font-size:3.2rem; margin-bottom:12px;">🏛️</div>
+          <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:8px; color:#173b2b;">Please Select a District</h3>
+          <p style="max-width:520px; margin:0 auto; font-size:0.92rem; line-height:1.5; color:#557267;">
+            Select a <strong>District</strong> from the controls above (and optionally a specific <strong>Mandal</strong>), then click the <strong>⚡ Generate Report</strong> button to load the official PDF report and consolidated DCB data.
+          </p>
+        </div>
+        <iframe id="pdf-frame" class="pdf-iframe" style="display:none;" src="about:blank"></iframe>
       </div>
     </div>
 
@@ -597,7 +607,7 @@ TAX_PAGE_HTML = """<!doctype html>
             </tr>
           </thead>
           <tbody id="mandal-table-body">
-            <tr><td colspan="14" class="center-cell" style="padding:20px;">Loading Mandal summary...</td></tr>
+            <tr><td colspan="14" class="center-cell" style="padding:28px; color:#557267;">Please select a District and click <strong>⚡ Generate Report</strong> to display Mandal summary.</td></tr>
           </tbody>
         </table>
       </div>
@@ -628,7 +638,7 @@ TAX_PAGE_HTML = """<!doctype html>
             </tr>
           </thead>
           <tbody id="gp-table-body">
-            <tr><td colspan="12" class="center-cell" style="padding:20px;">Loading GP details...</td></tr>
+            <tr><td colspan="12" class="center-cell" style="padding:28px; color:#557267;">Please select a District and click <strong>⚡ Generate Report</strong> to display Gram Panchayat details.</td></tr>
           </tbody>
         </table>
 
@@ -688,38 +698,35 @@ TAX_PAGE_HTML = """<!doctype html>
 
     function reloadPdfViewer() {
       const dist = document.getElementById('district-select').value;
+      if (!dist) return;
+      const mandal = document.getElementById('mandal-select').value;
+      const encDist = encodeURIComponent(dist);
+      const isAllMandals = !mandal || mandal === 'all';
+      const mandalParam = isAllMandals ? '' : `&mandal=${encodeURIComponent(mandal)}`;
       const frame = document.getElementById('pdf-frame');
-      frame.src = `/api/tax/report.pdf?district=${encodeURIComponent(dist)}&t=${Date.now()}`;
+      frame.src = `/api/tax/report.pdf?district=${encDist}${mandalParam}&t=${Date.now()}`;
     }
 
-    // Load available districts from API
+    // Load available districts from API (no auto-selection)
     async function initDistricts() {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const preselect = urlParams.get('district') || 'Khammam';
-
         const res = await fetch('/api/tax/districts');
         const districts = await res.json();
         const sel = document.getElementById('district-select');
-        sel.innerHTML = '';
+        sel.innerHTML = '<option value="" selected disabled>-- Select District --</option>';
 
-        let matched = false;
         districts.forEach(d => {
           const opt = document.createElement('option');
           opt.value = d.district;
           opt.textContent = `${d.district} (${d.gps_count} GPs)`;
-          if (d.district.toLowerCase() === preselect.toLowerCase()) {
-            opt.selected = true;
-            matched = true;
-          }
           sel.appendChild(opt);
         });
 
-        if (!matched && districts.length > 0) {
-          sel.value = districts[0].district;
-        }
+        const mandalSel = document.getElementById('mandal-select');
+        mandalSel.innerHTML = '<option value="all">-- Select District First --</option>';
+        mandalSel.disabled = true;
 
-        onDistrictChanged();
+        showStatus('Please select a District and click Generate Report to begin.', 'info');
       } catch (err) {
         showStatus('Error loading districts: ' + err.message, 'error');
       }
@@ -727,6 +734,7 @@ TAX_PAGE_HTML = """<!doctype html>
 
     function updateActionLinks() {
       const dist = document.getElementById('district-select').value;
+      if (!dist) return;
       const mandal = document.getElementById('mandal-select').value;
       const encDist = encodeURIComponent(dist);
       const isAllMandals = !mandal || mandal === 'all';
@@ -737,26 +745,64 @@ TAX_PAGE_HTML = """<!doctype html>
       const excelUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=xlsx`;
       const csvUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=csv`;
 
-      const heroBtn = document.getElementById('btn-open-pdf-hero');
-      if (heroBtn) heroBtn.href = pdfUrl;
-      document.getElementById('btn-view-pdf').href = pdfUrl;
-      document.getElementById('btn-download-pdf').href = pdfDlUrl;
-      document.getElementById('btn-download-excel').href = excelUrl;
-      document.getElementById('btn-download-csv').href = csvUrl;
-      document.getElementById('btn-fullscreen-pdf').href = pdfUrl;
+      const viewPdfBtn = document.getElementById('btn-view-pdf');
+      if (viewPdfBtn) viewPdfBtn.href = pdfUrl;
+      const dlPdfBtn = document.getElementById('btn-download-pdf');
+      if (dlPdfBtn) dlPdfBtn.href = pdfDlUrl;
+      const dlExcelBtn = document.getElementById('btn-download-excel');
+      if (dlExcelBtn) dlExcelBtn.href = excelUrl;
+      const dlCsvBtn = document.getElementById('btn-download-csv');
+      if (dlCsvBtn) dlCsvBtn.href = csvUrl;
+      const fsPdfBtn = document.getElementById('btn-fullscreen-pdf');
+      if (fsPdfBtn) fsPdfBtn.href = pdfUrl;
 
-      const label = isAllMandals ? dist : `${dist} · ${mandal} Mandal`;
+      const label = isAllMandals ? `${dist} District` : `${mandal} Mandal (${dist} District)`;
       document.getElementById('pdf-dist-label').textContent = label;
       document.getElementById('pdf-frame').src = pdfUrl;
     }
 
     async function onDistrictChanged() {
       const dist = document.getElementById('district-select').value;
+      const mandalSel = document.getElementById('mandal-select');
+      if (!dist) {
+        mandalSel.innerHTML = '<option value="all">-- Select District First --</option>';
+        mandalSel.disabled = true;
+        return;
+      }
+      mandalSel.disabled = false;
+      await loadMandals(dist);
+      showStatus(`Selected ${dist} District. Click '⚡ Generate Report' to view report and analytics.`, 'info');
+    }
+
+    async function onGenerateReportClick() {
+      const dist = document.getElementById('district-select').value;
+      if (!dist) {
+        showStatus('Please select a District first.', 'error');
+        document.getElementById('district-select').focus();
+        return;
+      }
+      const mandal = document.getElementById('mandal-select').value;
+
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('district', dist);
+      if (mandal && mandal !== 'all') {
+        newUrl.searchParams.set('mandal', mandal);
+      } else {
+        newUrl.searchParams.delete('mandal');
+      }
       window.history.replaceState({}, '', newUrl);
 
-      await loadMandals(dist);
+      // Reveal action toolbar & PDF frame
+      const actionsBar = document.getElementById('actions-bar');
+      if (actionsBar) actionsBar.style.display = 'flex';
+
+      const pdfToolbar = document.getElementById('pdf-toolbar');
+      if (pdfToolbar) pdfToolbar.style.display = 'flex';
+      const placeholder = document.getElementById('pdf-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+      const frame = document.getElementById('pdf-frame');
+      if (frame) frame.style.display = 'block';
+
       updateActionLinks();
       await loadData(dist);
     }
@@ -964,8 +1010,9 @@ TAX_PAGE_HTML = """<!doctype html>
     document.getElementById('district-select').addEventListener('change', onDistrictChanged);
     document.getElementById('mandal-select').addEventListener('change', () => {
       const dist = document.getElementById('district-select').value;
-      updateActionLinks();
-      loadData(dist);
+      if (dist) {
+        showStatus('Mandal selected. Click ⚡ Generate Report to view report.', 'info');
+      }
     });
     document.getElementById('search-input').addEventListener('input', applyFilter);
 

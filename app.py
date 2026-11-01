@@ -295,7 +295,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             </p>
           </div>
           <div class="module-actions">
-            <a href="/reports/tax-dcb?district=Khammam" class="btn-action btn-primary">
+            <a href="/reports/tax-dcb" class="btn-action btn-primary">
               📊 View DCB Analytics
             </a>
           </div>
