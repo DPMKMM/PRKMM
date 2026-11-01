@@ -826,7 +826,7 @@ TAX_PAGE_HTML = """<!doctype html>
     <section class="hero-strip">
       <div class="hero-info">
         <span class="hero-badge">ePanchayat Departmental Live Data</span>
-        <h1>Gram Panchayat Wise DCB Status &amp; PDF Report</h1>
+        <h1>Gram Panchayat Wise DCB Status Report</h1>
         <p>Consolidated Demand, Collection, and Balance (DCB) for House Tax across all Mandals and Gram Panchayats</p>
       </div>
     </section>
@@ -867,7 +867,7 @@ TAX_PAGE_HTML = """<!doctype html>
           📥 Download Power BI Report (PDF)
         </button>
         <a id="btn-download-pdf" href="#" class="btn btn-pdf" download>
-          📄 Download Official PDF Report
+          📄 Download PDF Report
         </a>
         <a id="btn-download-excel" href="#" class="btn btn-secondary" download>
           📊 Download Consolidated Excel (.xlsx)
