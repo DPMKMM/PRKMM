@@ -103,12 +103,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
     .hero-banner::after { content: ""; position: absolute; right: -50px; bottom: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
     .hero-badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #c4f2dc; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; margin-bottom: 12px; }
     .hero-title { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
-    .hero-desc { font-size: 1.02rem; line-height: 1.6; color: #e1f3ea; margin: 0 0 22px; max-width: 760px; }
-
-    .stats-ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 24px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.2); }
-    .stat-item { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; backdrop-filter: blur(4px); }
-    .stat-val { font-size: 1.5rem; font-weight: 800; color: white; display: block; }
-    .stat-lbl { font-size: 0.78rem; font-weight: 600; color: #bde5d2; text-transform: uppercase; letter-spacing: 0.04em; }
+    .hero-desc { font-size: 1.02rem; line-height: 1.6; color: #e1f3ea; margin: 0; max-width: 760px; }
 
     .section-heading { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 16px; }
     .section-heading h2 { margin: 0; font-size: 1.45rem; font-weight: 800; color: #15332b; letter-spacing: -0.01em; }
@@ -188,7 +183,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       .nav-link, .dropdown-btn { padding: 8px 10px; font-size: 0.85rem; }
       .dropdown-menu { min-width: 270px; right: -30px; }
       .hero-banner { padding: 22px; }
-      .stats-ribbon { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -241,8 +235,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             </div>
           </div>
         </div>
-
-        <a class="nav-link" id="nav-guidelines" href="#guidelines" onclick="navigateTo('home', null, 'guidelines-section')">Guidelines</a>
       </nav>
     </div>
   </header>
@@ -254,27 +246,8 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         <span class="hero-badge">Panchayat Raj &amp; Rural Development Department</span>
         <h1 class="hero-title">Executive Monitoring &amp; Analytics Portal</h1>
         <p class="hero-desc">
-          Official departmental analytics platform empowering District Collectors, DPOs, ZP CEOs, MPDOs, and MPOs with automated performance tracking, morning attendance compliance, and daily status analytics across Telangana.
+          Official departmental analytics platform empowering District Officers and Mandal Officers to automated performance tracking, morning attendance compliance, and daily status analytics.
         </p>
-
-        <div class="stats-ribbon">
-          <div class="stat-item">
-            <span class="stat-val">33</span>
-            <span class="stat-lbl">Districts Supported</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-val">12,769+</span>
-            <span class="stat-lbl">Gram Panchayats</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-val">09:00 AM</span>
-            <span class="stat-lbl">Morning Cutoff Time</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-val">100%</span>
-            <span class="stat-lbl">Automated PDF Analytics</span>
-          </div>
-        </div>
       </section>
 
       <div class="section-heading">
@@ -305,9 +278,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           </div>
         </div>
 
-
-
-        <!-- Module 4: Tax Collection (Upcoming) -->
+        <!-- Module 2: Tax Collection (Upcoming) -->
         <div class="module-card">
           <div>
             <div class="module-card-header">
@@ -316,7 +287,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             </div>
             <h3>GP Tax Collection &amp; Finances</h3>
             <p>
-              Real-time Demand, Collection, and Balance (DCB) monitoring for House Tax, trade licenses, non-tax revenue, and central/state finance grants across Gram Panchayats.
+              Real-time Demand, Collection, and Balance (DCB) monitoring for House Tax across Gram Panchayats.
             </p>
           </div>
           <div class="module-actions">
@@ -324,17 +295,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           </div>
         </div>
       </div>
-
-      <!-- Guidelines Section -->
-      <section class="info-card" id="guidelines-section">
-        <h3>📌 Operational Guidelines for Officers</h3>
-        <ul class="guideline-list">
-          <li><strong>Data Cut-Off:</strong> Morning attendance should be submitted before <strong>09:00 AM</strong>. Attendance submitted after 9:00 AM is flagged in bold red text in all reports.</li>
-          <li><strong>DSR Reporting:</strong> Daily Status Reports (DSR) must be updated by eligible present secretaries. Pending DSRs are highlighted for supervisory follow-up.</li>
-          <li><strong>Universal District Compatibility:</strong> The portal automatically detects any Telangana District, Division, Mandal, and GP from the uploaded raw data file without manual configuration.</li>
-          <li><strong>Mandal Level Monitoring:</strong> Mandal officers only need to upload their <strong>RAW data file</strong>. The system auto-detects the Mandal and prepares a focused 2-page PDF report.</li>
-        </ul>
-      </section>
     </div>
 
     <!-- VIEW 2: Report Tool (PS Attendance & DSR Analytics) -->
@@ -425,7 +385,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
   </main>
 
   <footer>
-    Government of Telangana · Panchayat Raj &amp; Rural Development Department · Executive Analytics &amp; Monitoring Portal
+    Executive Analytics &amp; Monitoring Portal Designed and Developed by DPMs
   </footer>
 
   <script>
