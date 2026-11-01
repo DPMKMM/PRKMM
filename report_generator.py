@@ -1358,16 +1358,107 @@ def generate_mandal_pdf(report: ReportData, output_path: str | Path, mandal_name
     dsr_pending_gps = [r for r in mandal_gps if r.get("dsr_eligible") and not r.get("dsr_entered")]
 
     story: list[Any] = []
-    # PAGE 1: Full GP Attendance and DSR Status
+    # PAGE 1: Mandal Abstract & Exception Lists
     story.extend([
         Paragraph(f"{report.district_name.upper()} DISTRICT", styles["MandalReportTitle"]),
-        Paragraph(f"{target_mandal.upper()} MANDAL — GP ATTENDANCE & DSR REPORT", styles["MandalReportTitle"]),
+        Paragraph(f"{target_mandal.upper()} MANDAL &mdash; ATTENDANCE &amp; DSR REPORT", styles["MandalReportTitle"]),
         Paragraph(
             f"Report Date: {report.report_date:%d-%m-%Y} | Total GPs: {len(mandal_gps)} | "
             f"Attendance Submitted: {len(submitted_gps)} | Pending: {len(pending_gps)}",
             styles["MandalReportSubtitle"],
         ),
-        Paragraph("1. Gram Panchayat Attendance & DSR Status", styles["MandalSectionTitle"]),
+    ])
+
+    # 1. Mandal Abstract Summary
+    story.append(Paragraph("1. Mandal Abstract Summary", styles["MandalSectionTitle"]))
+    total_gp_cnt = len(mandal_gps)
+    before_9_cnt = len(submitted_gps) - len(after_9_gps)
+    before_9_pct = (before_9_cnt / total_gp_cnt * 100) if total_gp_cnt else 0.0
+    dsr_pct = (len(dsr_entered_gps) / len(dsr_eligible_gps) * 100) if dsr_eligible_gps else 0.0
+
+    summary_headers = ["Indicator", "Count / Value", "Indicator", "Count / Value"]
+    summary_widths = [45 * mm, 48 * mm, 45 * mm, available_width - 138 * mm]
+    summary_rows = [
+        ["Total Gram Panchayats", str(total_gp_cnt), "Submitted Before 9 AM", f"{before_9_cnt} ({before_9_pct:.2f}%)"],
+        ["Submitted After 9 AM", f'<font color="#C00000"><b>{len(after_9_gps)}</b></font>' if after_9_gps else "0", "PS on Leave", str(len(leave_gps))],
+        ["PS in Meeting / Training", str(len(meeting_gps)), "Attendance Pending", f'<font color="#C00000"><b>{len(pending_gps)}</b></font>' if pending_gps else "0"],
+        ["Present PS (DSR Eligible)", str(len(dsr_eligible_gps)), "DSR Submitted", f"{len(dsr_entered_gps)} ({dsr_pct:.2f}%)"],
+        ["DSR Pending", f'<font color="#C00000"><b>{len(dsr_pending_gps)}</b></font>' if dsr_pending_gps else "0", "Overall Attendance %", f"{(len(submitted_gps) / total_gp_cnt * 100):.2f}%" if total_gp_cnt else "0%"],
+    ]
+    summary_table = make_table(summary_headers, summary_rows, summary_widths, left_columns=(0, 2))
+    story.append(summary_table)
+    story.append(Spacer(1, 6))
+
+    # 2. Attendance Pending GPs List
+    story.append(Paragraph(f"2. Attendance Pending GPs (Total: {len(pending_gps)})", styles["MandalSectionTitle"]))
+    pending_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status", "Panchayat Secretary Name", "Mobile Number"]
+    pending_widths = [12 * mm, 56 * mm, 42 * mm, 42 * mm, available_width - 152 * mm]
+    pending_table_rows: list[list[Any]] = []
+    for idx, r in enumerate(pending_gps, start=1):
+        pending_table_rows.append([
+            idx, r["gp"],
+            '<font color="#C00000"><b>Attendance Pending</b></font>',
+            r.get("ps_name") or "-",
+            r.get("mobile") or "-",
+        ])
+    if not pending_table_rows:
+        pending_table_rows = [["-", "All Gram Panchayats have submitted morning attendance.", "-", "-", "-"]]
+    pending_tbl = make_table(pending_headers, pending_table_rows, pending_widths, left_columns=(1, 3))
+    if not pending_gps:
+        pending_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
+    story.append(pending_tbl)
+    story.append(Spacer(1, 6))
+
+    # 3. DSR Pending GPs List
+    story.append(Paragraph(f"3. DSR Pending GPs (Total: {len(dsr_pending_gps)})", styles["MandalSectionTitle"]))
+    dsrp_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status", "Attendance Time", "DSR Status"]
+    dsrp_widths = [12 * mm, 56 * mm, 40 * mm, 38 * mm, available_width - 146 * mm]
+    dsrp_table_rows: list[list[Any]] = []
+    for idx, r in enumerate(dsr_pending_gps, start=1):
+        dsrp_table_rows.append([
+            idx, r["gp"],
+            r.get("status") or "Present",
+            r.get("time_only") or "-",
+            '<font color="#C00000"><b>DSR not entered</b></font>',
+        ])
+    if not dsrp_table_rows:
+        dsrp_table_rows = [["-", "All eligible Gram Panchayats have entered DSR.", "-", "-", "-"]]
+    dsrp_tbl = make_table(dsrp_headers, dsrp_table_rows, dsrp_widths, left_columns=(1,))
+    if not dsr_pending_gps:
+        dsrp_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
+    story.append(dsrp_tbl)
+    story.append(Spacer(1, 6))
+
+    # 4. GPs Submitted Attendance After 9 AM
+    story.append(Paragraph(f"4. GPs Submitted Attendance After 9 AM (Total: {len(after_9_gps)})", styles["MandalSectionTitle"]))
+    after9_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Time", "Status", "Mobile Number"]
+    after9_widths = [12 * mm, 56 * mm, 38 * mm, 42 * mm, available_width - 148 * mm]
+    after9_table_rows: list[list[Any]] = []
+    for idx, r in enumerate(after_9_gps, start=1):
+        after9_table_rows.append([
+            idx, r["gp"],
+            f'<font color="#C00000"><b>{r.get("time_only")}</b></font>',
+            r.get("status") or "Present",
+            r.get("mobile") or "-",
+        ])
+    if not after9_table_rows:
+        after9_table_rows = [["-", "No Gram Panchayats submitted attendance after 9 AM.", "-", "-", "-"]]
+    after9_tbl = make_table(after9_headers, after9_table_rows, after9_widths, left_columns=(1,))
+    if not after_9_gps:
+        after9_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
+    story.append(after9_tbl)
+
+    # PAGE 2: Full GP Attendance and DSR Status
+    story.append(PageBreak())
+    story.extend([
+        Paragraph(f"{report.district_name.upper()} DISTRICT", styles["MandalReportTitle"]),
+        Paragraph(f"{target_mandal.upper()} MANDAL &mdash; GP ATTENDANCE &amp; DSR REPORT", styles["MandalReportTitle"]),
+        Paragraph(
+            f"Report Date: {report.report_date:%d-%m-%Y} | Total GPs: {len(mandal_gps)} | "
+            f"Attendance Submitted: {len(submitted_gps)} | Pending: {len(pending_gps)}",
+            styles["MandalReportSubtitle"],
+        ),
+        Paragraph("5. Gram Panchayat Attendance & DSR Status", styles["MandalSectionTitle"]),
     ])
 
     gp_headers = [
@@ -1405,93 +1496,6 @@ def generate_mandal_pdf(report: ReportData, output_path: str | Path, mandal_name
         gp_rows.append([idx, r["gp"], status_text, time_display, dsr_display])
 
     story.append(make_table(gp_headers, gp_rows, gp_widths, left_columns=(1,)))
-
-    # PAGE 2: Pending GPs, Exceptions, and Summary
-    story.append(PageBreak())
-    story.extend([
-        Paragraph(f"{report.district_name.upper()} DISTRICT · {target_mandal.upper()} MANDAL", styles["MandalReportTitle"]),
-        Paragraph("MANDAL PENDING LIST & EXCEPTIONS", styles["MandalReportTitle"]),
-        Paragraph(f"Report Date: {report.report_date:%d-%m-%Y}", styles["MandalReportSubtitle"]),
-    ])
-
-    # 2. Attendance Pending GPs List
-    story.append(Paragraph(f"2. Attendance Pending GPs (Total: {len(pending_gps)})", styles["MandalSectionTitle"]))
-    pending_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status", "Panchayat Secretary Name", "Mobile Number"]
-    pending_widths = [12 * mm, 56 * mm, 42 * mm, 42 * mm, available_width - 152 * mm]
-    pending_table_rows: list[list[Any]] = []
-    for idx, r in enumerate(pending_gps, start=1):
-        pending_table_rows.append([
-            idx, r["gp"],
-            '<font color="#C00000"><b>Attendance Pending</b></font>',
-            r.get("ps_name") or "-",
-            r.get("mobile") or "-",
-        ])
-    if not pending_table_rows:
-        pending_table_rows = [["-", "All Gram Panchayats submitted attendance.", "-", "-", "-"]]
-    pending_tbl = make_table(pending_headers, pending_table_rows, pending_widths, left_columns=(1, 3))
-    if not pending_gps:
-        pending_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
-    story.append(pending_tbl)
-    story.append(Spacer(1, 6))
-
-    # 3. GPs Submitted Attendance After 9 AM
-    story.append(Paragraph(f"3. GPs Submitted Attendance After 9 AM (Total: {len(after_9_gps)})", styles["MandalSectionTitle"]))
-    after9_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Time", "Status", "Mobile Number"]
-    after9_widths = [12 * mm, 56 * mm, 38 * mm, 42 * mm, available_width - 148 * mm]
-    after9_table_rows: list[list[Any]] = []
-    for idx, r in enumerate(after_9_gps, start=1):
-        after9_table_rows.append([
-            idx, r["gp"],
-            f'<font color="#C00000"><b>{r.get("time_only")}</b></font>',
-            r.get("status") or "Present",
-            r.get("mobile") or "-",
-        ])
-    if not after9_table_rows:
-        after9_table_rows = [["-", "No Gram Panchayats submitted attendance after 9 AM.", "-", "-", "-"]]
-    after9_tbl = make_table(after9_headers, after9_table_rows, after9_widths, left_columns=(1,))
-    if not after_9_gps:
-        after9_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
-    story.append(after9_tbl)
-    story.append(Spacer(1, 6))
-
-    # 4. DSR Pending GPs List
-    story.append(Paragraph(f"4. DSR Pending GPs (Total: {len(dsr_pending_gps)})", styles["MandalSectionTitle"]))
-    dsrp_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status", "Attendance Time", "DSR Status"]
-    dsrp_widths = [12 * mm, 56 * mm, 40 * mm, 38 * mm, available_width - 146 * mm]
-    dsrp_table_rows: list[list[Any]] = []
-    for idx, r in enumerate(dsr_pending_gps, start=1):
-        dsrp_table_rows.append([
-            idx, r["gp"],
-            r.get("status") or "Present",
-            r.get("time_only") or "-",
-            '<font color="#C00000"><b>DSR not entered</b></font>',
-        ])
-    if not dsrp_table_rows:
-        dsrp_table_rows = [["-", "All eligible Gram Panchayats entered DSR.", "-", "-", "-"]]
-    dsrp_tbl = make_table(dsrp_headers, dsrp_table_rows, dsrp_widths, left_columns=(1,))
-    if not dsr_pending_gps:
-        dsrp_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
-    story.append(dsrp_tbl)
-    story.append(Spacer(1, 8))
-
-    # 5. Mandal Abstract Summary
-    story.append(Paragraph("5. Mandal Abstract Summary", styles["MandalSectionTitle"]))
-    total_gp_cnt = len(mandal_gps)
-    before_9_cnt = len(submitted_gps) - len(after_9_gps)
-    before_9_pct = (before_9_cnt / total_gp_cnt * 100) if total_gp_cnt else 0.0
-    dsr_pct = (len(dsr_entered_gps) / len(dsr_eligible_gps) * 100) if dsr_eligible_gps else 0.0
-
-    summary_headers = ["Indicator", "Count / Value", "Indicator", "Count / Value"]
-    summary_widths = [45 * mm, 48 * mm, 45 * mm, available_width - 138 * mm]
-    summary_rows = [
-        ["Total Gram Panchayats", str(total_gp_cnt), "Submitted Before 9 AM", f"{before_9_cnt} ({before_9_pct:.2f}%)"],
-        ["Submitted After 9 AM", f'<font color="#C00000"><b>{len(after_9_gps)}</b></font>' if after_9_gps else "0", "PS on Leave", str(len(leave_gps))],
-        ["PS in Meeting / Training", str(len(meeting_gps)), "Attendance Pending", f'<font color="#C00000"><b>{len(pending_gps)}</b></font>' if pending_gps else "0"],
-        ["Present PS (DSR Eligible)", str(len(dsr_eligible_gps)), "DSR Submitted", f"{len(dsr_entered_gps)} ({dsr_pct:.2f}%)"],
-        ["DSR Pending", f'<font color="#C00000"><b>{len(dsr_pending_gps)}</b></font>' if dsr_pending_gps else "0", "Overall Attendance %", f"{(len(submitted_gps) / total_gp_cnt * 100):.2f}%" if total_gp_cnt else "0%"],
-    ]
-    summary_table = make_table(summary_headers, summary_rows, summary_widths, left_columns=(0, 2))
-    story.append(summary_table)
 
     doc = SimpleDocTemplate(
         str(output), pagesize=A4, rightMargin=margin, leftMargin=margin,

@@ -645,7 +645,11 @@ def test_mandal_pdf_generation_and_metadata_detection(tmp_path: Path):
     assert len(reader.pages) >= 2
     p1 = reader.pages[0].extract_text()
     assert "MANDAL A" in p1
-    assert "Gram Panchayat Attendance" in p1
+    assert "Mandal Abstract Summary" in p1
+    p2 = reader.pages[1].extract_text()
+    assert "MANDAL A" in p2
+    assert "GP ATTENDANCE & DSR REPORT" in p2
+    assert "Gram Panchayat Attendance & DSR Status" in p2
 
 
 def test_web_upload_mandal_mode_downloads_mandal_pdf(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
