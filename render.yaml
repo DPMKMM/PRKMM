@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: kmmdsr
+    name: prkmm
     runtime: docker
     region: singapore
     plan: free

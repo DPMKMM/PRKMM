@@ -1,6 +1,6 @@
 # Render Deployment
 
-The production webserver is named kmmdsr and is available at https://kmmdsr.onrender.com. It deploys from DPMKMM/DSR, branch main, using the repository Dockerfile.
+The production webserver is named prkmm and is available at https://prkmm.onrender.com. It deploys from DPMKMM/DSR, branch main, using the repository Dockerfile.
 
 ## Deployment behavior
 
@@ -21,8 +21,8 @@ Render Free does not provide persistent local disks. Files under /tmp/khammam-at
 
 Push code changes to main; Render builds and deploys the linked branch. Verify the new deploy becomes Live, then check:
 
-- https://kmmdsr.onrender.com/health
-- https://kmmdsr.onrender.com/
+- https://prkmm.onrender.com/health
+- https://prkmm.onrender.com/
 
 Keep the legacy service available until the new service has been verified. Do not store uploads, PDFs, SQLite files, or secrets in Git.
 

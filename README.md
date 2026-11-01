@@ -71,7 +71,7 @@ docker run --rm -p 8080:8080 -e WEB_SESSION_SECRET=replace-with-a-random-secret-
 
 ## Deploy to Render
 
-The repository includes a `render.yaml` Blueprint for the `kmmdsr` web service on the Free plan. For exact deployment details and storage limits, see `README_Render.md`.
+The repository includes a `render.yaml` Blueprint for the `prkmm` web service on the Free plan. For exact deployment details and storage limits, see `README_Render.md`.
 
 Render Free uses ephemeral local storage. Reports and SQLite job history can be removed on restart, redeploy, or spin-down. Download reports and save copies. For durable server-side storage, attach an appropriate persistent storage solution and review its current cost before enabling it.
 
