@@ -1,6 +1,6 @@
 # Render Deployment
 
-The production webserver is named prkmm and is available at https://prkmm.onrender.com. It deploys from DPMKMM/DSR, branch main, using the repository Dockerfile.
+The production webserver is named prkmm and is available at https://prkmm.onrender.com. It deploys from DPMKMM/PRKMM, branch main, using the repository Dockerfile.
 
 ## Deployment behavior
 
