@@ -232,24 +232,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <div class="dropdown-header">Upcoming Reporting Options</div>
 
             <div class="dropdown-item disabled">
-              <span class="dropdown-item-icon">🏗️</span>
-              <div class="dropdown-item-content">
-                <strong>Panchayat Works &amp; Infrastructure</strong>
-                <span>CC Roads, Vaikunta Dhamams &amp; Rythu Vedikas</span>
-                <span class="badge-soon">Coming Soon</span>
-              </div>
-            </div>
-
-            <div class="dropdown-item disabled">
-              <span class="dropdown-item-icon">🚛</span>
-              <div class="dropdown-item-content">
-                <strong>Sanitation &amp; SWM Tracking</strong>
-                <span>Segregation Sheds, Tractors &amp; Waste Processing</span>
-                <span class="badge-soon">Coming Soon</span>
-              </div>
-            </div>
-
-            <div class="dropdown-item disabled">
               <span class="dropdown-item-icon">💰</span>
               <div class="dropdown-item-content">
                 <strong>GP Tax Collection &amp; Finances</strong>
@@ -323,39 +305,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           </div>
         </div>
 
-        <!-- Module 2: Works & Infrastructure (Upcoming) -->
-        <div class="module-card">
-          <div>
-            <div class="module-card-header">
-              <div class="module-icon-wrap">🏗️</div>
-              <span class="module-badge badge-planned">Coming Soon</span>
-            </div>
-            <h3>Panchayat Works &amp; Infrastructure</h3>
-            <p>
-              Monitoring progress of Gram Panchayat infrastructure works including CC roads, internal drains, Vaikunta Dhamams, Rythu Vedikas, and administrative buildings with geo-tagged stage tracking.
-            </p>
-          </div>
-          <div class="module-actions">
-            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
-          </div>
-        </div>
 
-        <!-- Module 3: Sanitation & SWM (Upcoming) -->
-        <div class="module-card">
-          <div>
-            <div class="module-card-header">
-              <div class="module-icon-wrap">🚛</div>
-              <span class="module-badge badge-planned">Coming Soon</span>
-            </div>
-            <h3>Sanitation &amp; SWM Tracking</h3>
-            <p>
-              Daily solid waste management analytics: segregation shed operations, wet and dry waste processing, tractor &amp; tri-wheeler collection rounds, and dump yard upkeep monitoring.
-            </p>
-          </div>
-          <div class="module-actions">
-            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
-          </div>
-        </div>
 
         <!-- Module 4: Tax Collection (Upcoming) -->
         <div class="module-card">
