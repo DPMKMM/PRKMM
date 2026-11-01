@@ -298,9 +298,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <a href="/reports/tax-dcb?district=Khammam" class="btn-action btn-primary">
               📊 View DCB Analytics
             </a>
-            <a href="/api/tax/report.pdf?district=Khammam" target="_blank" class="btn-action btn-secondary">
-              📄 Official PDF Report
-            </a>
           </div>
         </div>
       </div>

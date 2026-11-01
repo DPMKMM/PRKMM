@@ -457,11 +457,6 @@ TAX_PAGE_HTML = """<!doctype html>
         <h1>Gram Panchayat Wise DCB Status &amp; PDF Report</h1>
         <p>Consolidated Demand, Collection, and Balance (DCB) for House Tax across all Mandals and Gram Panchayats</p>
       </div>
-      <div>
-        <a id="btn-open-pdf-hero" href="/api/tax/report.pdf?district=Khammam" target="_blank" class="btn btn-pdf" style="font-size: 0.95rem; padding: 12px 20px;">
-          📄 View Official PDF Report ↗
-        </a>
-      </div>
     </section>
 
     <div id="status-box" class="status-alert"></div>
@@ -742,7 +737,8 @@ TAX_PAGE_HTML = """<!doctype html>
       const excelUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=xlsx`;
       const csvUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=csv`;
 
-      document.getElementById('btn-open-pdf-hero').href = pdfUrl;
+      const heroBtn = document.getElementById('btn-open-pdf-hero');
+      if (heroBtn) heroBtn.href = pdfUrl;
       document.getElementById('btn-view-pdf').href = pdfUrl;
       document.getElementById('btn-download-pdf').href = pdfDlUrl;
       document.getElementById('btn-download-excel').href = excelUrl;
