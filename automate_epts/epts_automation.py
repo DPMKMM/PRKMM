@@ -59,14 +59,23 @@ class EPTSAutomation:
     def start_browser(self):
         print(f"[*] Launching Chrome with persistent profile (Headless: {self.headless})...", flush=True)
         self.playwright = sync_playwright().start()
-        self.context = self.playwright.chromium.launch_persistent_context(
-            user_data_dir=str(PROFILE_DIR),
-            channel="chrome",
-            headless=self.headless,
-            no_viewport=True,
-            accept_downloads=True,
-            args=["--start-maximized", "--disable-blink-features=AutomationControlled"]
-        )
+        launch_args = ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--disable-blink-features=AutomationControlled"]
+        try:
+            self.context = self.playwright.chromium.launch_persistent_context(
+                user_data_dir=str(PROFILE_DIR),
+                channel="chrome",
+                headless=self.headless,
+                accept_downloads=True,
+                args=launch_args,
+            )
+        except Exception as e:
+            print(f"[-] Chrome channel launch failed ({e}), falling back to default Chromium...", flush=True)
+            self.context = self.playwright.chromium.launch_persistent_context(
+                user_data_dir=str(PROFILE_DIR),
+                headless=self.headless,
+                accept_downloads=True,
+                args=launch_args,
+            )
         self.page = self.context.pages[0] if self.context.pages else self.context.new_page()
 
     def is_logged_in(self):

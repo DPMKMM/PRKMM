@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+import sys
 import tempfile
 import time
 from dataclasses import dataclass
@@ -1611,91 +1612,41 @@ def create_app(
         if not u or not p:
             raise HTTPException(status_code=400, detail="Please enter both User ID and Password.")
 
-        cfg_dir = BASE_DIR / "automate_epts"
-        cfg_dir.mkdir(parents=True, exist_ok=True)
-        cfg_file = cfg_dir / "config.json"
-        try:
-            cfg_file.write_text(json.dumps({"username": u, "password": p}, indent=4), encoding="utf-8")
-        except Exception:
-            pass
+        sys.path.insert(0, str((BASE_DIR / "automate_epts").resolve()))
+        import automation_service
 
-        return {
-            "success": True,
-            "step": "otp_required",
-            "message": "OTP generation request submitted to e-Panchayat portal! Please enter the 6-digit OTP sent to your registered mobile.",
-        }
+        try:
+            return automation_service.start_server_login(u, p, headless=True)
+        except ConnectionError as exc:
+            # Firewall restriction on cloud server
+            raise HTTPException(status_code=503, detail=str(exc)) from None
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Server automation error: {exc}") from None
 
     @api.post("/api/naresh/verify-otp", include_in_schema=False)
     def naresh_verify_otp(
         otp: str = Form(...),
     ) -> dict[str, Any]:
-        clean_otp = re.sub(r"\D", "", otp.strip())
-        if len(clean_otp) != 6:
-            raise HTTPException(status_code=400, detail="Please enter a valid 6-digit numeric OTP.")
+        sys.path.insert(0, str((BASE_DIR / "automate_epts").resolve()))
+        import automation_service
 
-        otp_file = BASE_DIR / "automate_epts" / "otp.txt"
         try:
-            otp_file.write_text(clean_otp, encoding="utf-8")
-        except Exception:
-            pass
-
-        return {
-            "success": True,
-            "step": "authenticated",
-            "message": "OTP validated successfully! e-Panchayat session connected. Please select the target module and date.",
-        }
+            return automation_service.verify_server_otp(otp)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from None
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from None
 
     @api.post("/api/naresh/generate", include_in_schema=False)
     def naresh_generate(
         module: str = Form(default="dsr_full"),
         date: str = Form(default=""),
     ) -> dict[str, Any]:
-        candidate_paths = [
-            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
-            BASE_DIR / "bundled_raw_dsr.xls",
-        ]
-        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
-        if not source_path:
-            raise HTTPException(status_code=404, detail="Automated data source not found.")
-
-        req_date = date.strip() if date else datetime.now().strftime("%Y-%m-%d")
+        sys.path.insert(0, str((BASE_DIR / "automate_epts").resolve()))
+        import automation_service
 
         try:
-            raw_bytes = source_path.read_bytes()
-            filename = source_path.name
-
-            p_path = BASE_DIR / "automate_epts" / "downloads" / "presentees.xls"
-            presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
-
-            a_path = BASE_DIR / "automate_epts" / "downloads" / "absentees.xls"
-            absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
-
-            report = process_attendance_file(
-                filename,
-                raw_bytes,
-                presentees_source=presentees_data,
-                absentees_source=absentees_data,
-            )
-
-            reports_dir = BASE_DIR / "data" / "reports"
-            reports_dir.mkdir(parents=True, exist_ok=True)
-            target_pdf = reports_dir / f"Khammam_Official_DSR_Report_{req_date}.pdf"
-            generate_pdf(report, target_pdf)
-
-            cached_pdf = BASE_DIR / "automate_epts" / "downloads" / f"Official_DSR_Report_{req_date}.pdf"
-            try:
-                cached_pdf.write_bytes(target_pdf.read_bytes())
-            except Exception:
-                pass
-
-            return {
-                "success": True,
-                "step": "completed",
-                "message": f"DSR Attendance Report for {req_date} generated successfully!",
-                "pdf_url": "/api/naresh/view",
-                "download_url": "/api/naresh/download",
-                "totals": report.totals,
-            }
+            return automation_service.generate_server_report(module=module, date_str=date)
         except Exception as exc:
             status_code, safe_message = _safe_error(exc)
             raise HTTPException(status_code=status_code, detail=safe_message) from None
