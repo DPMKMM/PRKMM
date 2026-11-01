@@ -1559,6 +1559,26 @@ def create_app(
     def naresh_page() -> HTMLResponse:
         return HTMLResponse(NARESH_PAGE_HTML)
 
+    @api.get("/api/diagnostic/epts-check", include_in_schema=False)
+    def epts_diagnostic():
+        import httpx
+        url = "https://epanchayat.telangana.gov.in/cs"
+        try:
+            with httpx.Client(verify=False, timeout=10.0) as client:
+                resp = client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                return {
+                    "status": "ok",
+                    "http_status": resp.status_code,
+                    "length": len(resp.content),
+                    "url": str(resp.url),
+                }
+        except Exception as exc:
+            return {
+                "status": "error",
+                "error": str(exc),
+                "type": type(exc).__name__,
+            }
+
     @api.get("/api/naresh/data", include_in_schema=False)
     def naresh_api_data() -> dict[str, Any]:
         candidate_paths = [
