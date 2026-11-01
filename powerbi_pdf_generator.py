@@ -136,15 +136,26 @@ def create_gauge_img(pct: float | int, title: str, title_col: str = "#DC2626", m
 
 
 def create_donut_img(demand: float, coll: float, bal: float) -> ImageReader:
-    """Render the DCB breakdown donut chart."""
-    fig, ax = plt.subplots(figsize=(2.5, 2.2), dpi=150)
+    """Render the DCB breakdown donut chart with clean title and non-overlapping legend."""
+    fig, ax = plt.subplots(figsize=(2.5, 2.3), dpi=150)
     labels = ["Demand", "Collection", "Balance"]
     vals = [max(1.0, float(demand)), max(1.0, float(coll)), max(1.0, float(bal))]
     cols = ["#002060", "#008000", "#ED7D31"]
     wedges, _ = ax.pie(vals, colors=cols, startangle=90, wedgeprops=dict(width=0.45, edgecolor="w"))
-    ax.legend(wedges, labels, loc="upper center", bbox_to_anchor=(0.5, 1.22), ncol=3, fontsize=6.5, frameon=False)
-    ax.set_title("Overall DCB Breakdown", fontsize=8, fontweight="bold", pad=20)
-    plt.tight_layout(pad=0.2)
+    fig.suptitle("Overall DCB Breakdown", fontsize=8.2, fontweight="bold", y=0.98)
+    ax.legend(
+        wedges,
+        labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.06),
+        ncol=3,
+        fontsize=6.5,
+        frameon=False,
+        handlelength=1.0,
+        handletextpad=0.3,
+        columnspacing=0.8,
+    )
+    fig.subplots_adjust(top=0.84, bottom=0.04, left=0.04, right=0.96)
     buf = io.BytesIO()
     plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", transparent=True)
     plt.close(fig)
@@ -200,7 +211,7 @@ def create_clustered_chart_img(names: list[str], d_vals: list[float], c_vals: li
     ax.bar(x, c_scaled, width=w, label="Collection", color=cols[1])
     ax.bar(x + w, b_scaled, width=w, label="Balance", color=cols[2])
 
-    ax.set_title(title, fontsize=8.5, fontweight="bold", pad=6)
+    ax.set_title(title, loc="left", fontsize=8.5, fontweight="bold", pad=6)
     ax.set_xticks(x)
     fsize = 4.8 if len(names) > 28 else 5.8 if len(names) > 18 else 6.5
     ax.set_xticklabels(names, rotation=50, ha="right", fontsize=fsize)

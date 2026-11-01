@@ -1042,9 +1042,9 @@ TAX_PAGE_HTML = """<!doctype html>
               </div>
 
               <!-- Bottom Middle: Overall DCB Breakdown Donut -->
-              <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:center;">
-                <div class="pbi-card-title" style="width:100%; text-align:left;">Overall DCB Breakdown</div>
-                <div style="flex:1; min-height:215px; max-height:215px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
+              <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:stretch;">
+                <div class="pbi-card-title" style="width:100%; text-align:left; margin-bottom:8px;">Overall DCB Breakdown</div>
+                <div style="flex:1; min-height:205px; max-height:205px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
                   <canvas id="chart-dist-donut"></canvas>
                 </div>
               </div>
@@ -1724,7 +1724,7 @@ TAX_PAGE_HTML = """<!doctype html>
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                  legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } },
+                  legend: { position: 'top', labels: { boxWidth: 10, padding: 12, font: { size: 10, weight: 'bold' } } },
                   tooltip: {
                     callbacks: {
                       label: (ctx) => `${ctx.label}: ₹ ${formatInr(ctx.raw)}`
