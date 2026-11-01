@@ -979,7 +979,10 @@ def create_app(
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{_record_report_filename(record)}"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{_record_report_filename(record)}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
         )
 
     # -------------------------------------------------------------
@@ -1016,7 +1019,10 @@ def create_app(
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
         )
 
     @api.get("/api/tax/powerbi-report.pdf")
@@ -1025,7 +1031,10 @@ def create_app(
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
         )
 
     @api.get("/api/tax/download")
@@ -1036,13 +1045,19 @@ def create_app(
             return Response(
                 content=csv_bytes,
                 media_type="text/csv",
-                headers={"Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.csv"'},
+                headers={
+                    "Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.csv"',
+                    "Access-Control-Expose-Headers": "Content-Disposition",
+                },
             )
         excel_bytes = tax_service.generate_consolidated_excel(district)
         return Response(
             content=excel_bytes,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.xlsx"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.xlsx"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
         )
 
     @api.post("/api/tax/refresh")

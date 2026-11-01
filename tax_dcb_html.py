@@ -473,6 +473,197 @@ TAX_PAGE_HTML = """<!doctype html>
     .status-alert.success { display: block; background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .status-alert.error { display: block; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
+    /* Floating Mobile Download Toast & Notification Center */
+    .download-toast-container {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 28px);
+      max-width: 480px;
+      z-index: 999999;
+      pointer-events: none;
+    }
+    .download-toast-card {
+      pointer-events: auto;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1.5px solid #334155;
+      border-radius: 14px;
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      animation: toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      backdrop-filter: blur(8px);
+    }
+    @keyframes toastSlideUp {
+      from { opacity: 0; transform: translateY(28px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .download-toast-card.toast-exit {
+      animation: toastSlideDown 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+    @keyframes toastSlideDown {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(28px) scale(0.96); }
+    }
+    .download-toast-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+    }
+    .download-toast-icon-wrap {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .download-toast-icon-wrap.loading {
+      background: rgba(14, 165, 233, 0.18);
+      color: #38bdf8;
+    }
+    .download-toast-icon-wrap.success {
+      background: rgba(34, 197, 94, 0.22);
+      color: #4ade80;
+    }
+    .download-toast-icon-wrap.error {
+      background: rgba(239, 68, 68, 0.22);
+      color: #f87171;
+    }
+    .download-toast-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .download-toast-title {
+      font-weight: 700;
+      font-size: 0.94rem;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+    .download-toast-subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .download-toast-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .download-toast-close:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .download-toast-actions {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 14px 16px;
+    }
+    .download-toast-btn-open {
+      flex: 1;
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .download-toast-btn-open:hover, .download-toast-btn-open:active {
+      background: #15803d;
+    }
+    .download-toast-btn-dismiss {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .download-toast-btn-dismiss:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .download-toast-progress {
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 100%;
+      transform-origin: left;
+    }
+    .download-toast-progress.loading {
+      animation: toastProgressPulse 1.5s infinite;
+    }
+    @keyframes toastProgressPulse {
+      0% { transform: scaleX(0.1); opacity: 0.6; }
+      50% { transform: scaleX(0.8); opacity: 1; }
+      100% { transform: scaleX(1); opacity: 0.4; }
+    }
+    .toast-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: toastSpin 0.75s linear infinite;
+    }
+    @keyframes toastSpin {
+      to { transform: rotate(360deg); }
+    }
+    @media (max-width: 600px) {
+      .download-toast-container {
+        bottom: 14px;
+        width: calc(100% - 20px);
+      }
+      .download-toast-card {
+        border-radius: 12px;
+      }
+      .download-toast-header {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .download-toast-icon-wrap {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+      }
+      .download-toast-title {
+        font-size: 0.9rem;
+      }
+      .download-toast-subtitle {
+        font-size: 0.76rem;
+      }
+      .download-toast-actions {
+        padding: 0 14px 12px 14px;
+      }
+      .download-toast-btn-open {
+        font-size: 0.84rem;
+        padding: 9px 12px;
+      }
+    }
+
     footer {
       border-top: 1px solid #dce6e1;
       margin-top: 60px;
@@ -862,15 +1053,15 @@ TAX_PAGE_HTML = """<!doctype html>
       </div>
 
       <div class="actions-bar" id="actions-bar" style="display: none;">
-        <button type="button" id="btn-download-pbi-pdf" class="btn btn-primary" onclick="downloadPowerBiPdf()" style="display:flex; align-items:center; gap:6px;">
+        <button type="button" id="btn-download-pbi-pdf" class="btn btn-primary" onclick="downloadPowerBiPdf(this)" style="display:flex; align-items:center; gap:6px;">
           📥 Download Power BI Report (PDF)
         </button>
-        <a id="btn-download-pdf" href="#" class="btn btn-pdf" download>
+        <button type="button" id="btn-download-pdf" class="btn btn-pdf" style="display:flex; align-items:center; gap:6px;">
           📄 Download PDF Report
-        </a>
-        <a id="btn-download-excel" href="#" class="btn btn-secondary" download>
+        </button>
+        <button type="button" id="btn-download-excel" class="btn btn-secondary" style="display:flex; align-items:center; gap:6px;">
           📊 Download Consolidated Excel (.xlsx)
-        </a>
+        </button>
         <button type="button" id="btn-visual-report" class="btn btn-secondary" onclick="openVisualReport()" style="display:flex; align-items:center; gap:6px;">
           📊 Executive Visual Report (Power BI View)
         </button>
@@ -967,7 +1158,7 @@ TAX_PAGE_HTML = """<!doctype html>
             <span id="pbi-view-indicator" style="font-size:0.86rem; font-weight:750; color:#1e293b;">--</span>
           </div>
           <div class="pbi-header-tools" style="display:flex; align-items:center; gap:8px;">
-            <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.82rem; display:flex; align-items:center; gap:6px;" onclick="downloadPowerBiPdf()">
+            <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.82rem; display:flex; align-items:center; gap:6px;" onclick="downloadPowerBiPdf(this)">
               📥 Download Power BI PDF
             </button>
             <button type="button" class="btn btn-outline" style="padding:6px 12px; font-size:0.82rem;" onclick="window.print()">
@@ -1207,6 +1398,31 @@ TAX_PAGE_HTML = """<!doctype html>
     </div>
   </main>
 
+  <!-- Floating Mobile Download Notification Center -->
+  <div id="download-toast-container" class="download-toast-container" style="display:none;" role="alert" aria-live="assertive">
+    <div class="download-toast-card">
+      <div class="download-toast-header">
+        <div id="download-toast-icon" class="download-toast-icon-wrap loading">
+          <div class="toast-spinner"></div>
+        </div>
+        <div class="download-toast-body">
+          <div id="download-toast-title" class="download-toast-title">Downloading Report...</div>
+          <div id="download-toast-subtitle" class="download-toast-subtitle">Preparing file, please wait...</div>
+        </div>
+        <button type="button" class="download-toast-close" onclick="dismissDownloadToast()" aria-label="Close notification">&times;</button>
+      </div>
+      <div id="download-toast-actions" class="download-toast-actions" style="display:none;">
+        <button type="button" id="download-toast-open-btn" class="download-toast-btn-open">
+          <span>👁️</span> Open / View PDF
+        </button>
+        <button type="button" class="download-toast-btn-dismiss" onclick="dismissDownloadToast()">
+          Dismiss
+        </button>
+      </div>
+      <div id="download-toast-progress-bar" class="download-toast-progress loading"></div>
+    </div>
+  </div>
+
   <footer>
     Executive Analytics &amp; Monitoring Portal Owned, maintained and updated by DPM Khammam
   </footer>
@@ -1350,9 +1566,21 @@ TAX_PAGE_HTML = """<!doctype html>
       const viewPdfBtn = document.getElementById('btn-view-pdf');
       if (viewPdfBtn) viewPdfBtn.href = pdfUrl;
       const dlPdfBtn = document.getElementById('btn-download-pdf');
-      if (dlPdfBtn) dlPdfBtn.href = pdfDlUrl;
+      if (dlPdfBtn) {
+        dlPdfBtn.onclick = (e) => {
+          e.preventDefault();
+          const fname = isAllMandals ? `${dist}_Official_DCB_Report.pdf` : `${dist}_${mandal}_Official_DCB_Report.pdf`;
+          const lbl = isAllMandals ? `Official DCB PDF (${dist} District)` : `Official DCB PDF (${mandal} Mandal)`;
+          triggerManagedDownload(pdfDlUrl, fname, lbl, dlPdfBtn);
+        };
+      }
       const dlExcelBtn = document.getElementById('btn-download-excel');
-      if (dlExcelBtn) dlExcelBtn.href = excelUrl;
+      if (dlExcelBtn) {
+        dlExcelBtn.onclick = (e) => {
+          e.preventDefault();
+          triggerManagedDownload(excelUrl, `${dist}_House_Tax_DCB.xlsx`, 'Consolidated Excel', dlExcelBtn);
+        };
+      }
       const dlCsvBtn = document.getElementById('btn-download-csv');
       if (dlCsvBtn) dlCsvBtn.href = csvUrl;
       const fsPdfBtn = document.getElementById('btn-fullscreen-pdf');
@@ -1530,7 +1758,157 @@ TAX_PAGE_HTML = """<!doctype html>
       loadData(dist);
     }
 
-    function downloadPowerBiPdf() {
+    let _currentBlobUrl = null;
+    let _toastTimer = null;
+
+    function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        try { Notification.requestPermission(); } catch(e){}
+      }
+    }
+
+    function dismissDownloadToast() {
+      const container = document.getElementById('download-toast-container');
+      const card = container ? container.querySelector('.download-toast-card') : null;
+      if (!container || !card) return;
+      card.classList.add('toast-exit');
+      setTimeout(() => {
+        container.style.display = 'none';
+        card.classList.remove('toast-exit');
+      }, 260);
+      if (_toastTimer) {
+        clearTimeout(_toastTimer);
+        _toastTimer = null;
+      }
+    }
+
+    async function triggerManagedDownload(url, defaultFilename, friendlyLabel, triggerBtn = null) {
+      requestNotificationPermission();
+
+      const container = document.getElementById('download-toast-container');
+      const iconWrap = document.getElementById('download-toast-icon');
+      const titleEl = document.getElementById('download-toast-title');
+      const subtitleEl = document.getElementById('download-toast-subtitle');
+      const actionsEl = document.getElementById('download-toast-actions');
+      const openBtn = document.getElementById('download-toast-open-btn');
+      const progressBar = document.getElementById('download-toast-progress-bar');
+
+      if (_toastTimer) {
+        clearTimeout(_toastTimer);
+        _toastTimer = null;
+      }
+
+      container.style.display = 'block';
+      const card = container.querySelector('.download-toast-card');
+      if (card) card.classList.remove('toast-exit');
+
+      iconWrap.className = 'download-toast-icon-wrap loading';
+      iconWrap.innerHTML = '<div class="toast-spinner"></div>';
+      titleEl.textContent = 'Downloading ' + (friendlyLabel || 'Report') + '...';
+      subtitleEl.textContent = 'Preparing ' + defaultFilename + '...';
+      actionsEl.style.display = 'none';
+      progressBar.style.display = 'block';
+      progressBar.className = 'download-toast-progress loading';
+
+      showStatus(`Preparing and downloading ${defaultFilename}... Please wait.`, 'info');
+
+      let origBtnHtml = '';
+      if (triggerBtn) {
+        triggerBtn.disabled = true;
+        origBtnHtml = triggerBtn.innerHTML;
+        triggerBtn.innerHTML = '⏳ Downloading...';
+      }
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        let finalFilename = defaultFilename;
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = /filename\\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+        if (match && match[1]) {
+          finalFilename = decodeURIComponent(match[1]).trim();
+        }
+
+        const blob = await response.blob();
+
+        if (_currentBlobUrl) {
+          try { URL.revokeObjectURL(_currentBlobUrl); } catch(e){}
+        }
+        _currentBlobUrl = URL.createObjectURL(blob);
+
+        // Trigger file download to device Downloads folder
+        const link = document.createElement('a');
+        link.href = _currentBlobUrl;
+        link.download = finalFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Haptic vibration feedback on mobile
+        if (navigator.vibrate) {
+          try { navigator.vibrate([120, 60, 120]); } catch(e){}
+        }
+
+        // Web Notification API
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('Download Complete', {
+              body: `${finalFilename} has been saved to your device.`,
+              icon: '/favicon.ico'
+            });
+          } catch(e){}
+        }
+
+        // Success state in floating toast
+        iconWrap.className = 'download-toast-icon-wrap success';
+        iconWrap.innerHTML = '✅';
+        titleEl.textContent = 'Download Complete!';
+        subtitleEl.textContent = `${finalFilename} saved to Downloads.`;
+        progressBar.style.display = 'none';
+
+        showStatus(`✅ ${finalFilename} downloaded successfully!`, 'success');
+
+        actionsEl.style.display = 'flex';
+        if (finalFilename.toLowerCase().endsWith('.pdf')) {
+          openBtn.style.display = 'flex';
+          openBtn.onclick = function() {
+            window.open(_currentBlobUrl, '_blank');
+          };
+        } else {
+          openBtn.style.display = 'none';
+        }
+
+        _toastTimer = setTimeout(() => {
+          dismissDownloadToast();
+          hideStatus();
+        }, 14000);
+
+      } catch (err) {
+        console.error('Download failed:', err);
+        iconWrap.className = 'download-toast-icon-wrap error';
+        iconWrap.innerHTML = '❌';
+        titleEl.textContent = 'Download Failed';
+        subtitleEl.textContent = err.message || 'Error downloading file. Please try again.';
+        progressBar.style.display = 'none';
+        actionsEl.style.display = 'flex';
+        openBtn.style.display = 'none';
+        showStatus('Download failed: ' + (err.message || 'Network error'), 'error');
+
+        _toastTimer = setTimeout(() => {
+          dismissDownloadToast();
+        }, 8000);
+      } finally {
+        if (triggerBtn) {
+          triggerBtn.disabled = false;
+          triggerBtn.innerHTML = origBtnHtml;
+        }
+      }
+    }
+
+    function downloadPowerBiPdf(triggerBtn = null) {
       const dist = document.getElementById('district-select').value;
       if (!dist) {
         showStatus('Please select a district and click Generate Report first.', 'error');
@@ -1540,19 +1918,12 @@ TAX_PAGE_HTML = """<!doctype html>
       const isDistrictView = (mandal === 'all' || !mandal);
       const mandalParam = isDistrictView ? '' : `&mandal=${encodeURIComponent(mandal)}`;
 
-      const msg = isDistrictView
-        ? `Generating Official A4 Landscape Power BI Report (${dist} District + All Mandals)...`
-        : `Generating Official A4 Landscape Power BI Report for ${mandal} Mandal...`;
-      showStatus(msg, 'info');
-
       const dlUrl = `/api/tax/powerbi-report.pdf?district=${encodeURIComponent(dist)}${mandalParam}`;
-      const link = document.createElement('a');
-      link.href = dlUrl;
-      link.setAttribute('download', isDistrictView ? `${dist}_PowerBI_DCB_Report.pdf` : `${dist}_${mandal}_PowerBI_DCB_Report.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(hideStatus, 6000);
+      const fname = isDistrictView ? `${dist}_PowerBI_DCB_Report.pdf` : `${dist}_${mandal}_PowerBI_DCB_Report.pdf`;
+      const label = isDistrictView ? `Power BI Report (${dist} + All Mandals)` : `Power BI Report (${mandal} Mandal)`;
+
+      const btn = triggerBtn || document.getElementById('btn-download-pbi-pdf');
+      triggerManagedDownload(dlUrl, fname, label, btn);
     }
 
     let pbiSortAsc = true;
