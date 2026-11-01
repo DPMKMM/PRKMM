@@ -98,3 +98,19 @@ def test_power_bi_visual_report_html_elements():
     assert "downloadPowerBiPdf" in html
     assert "Download Power BI Report (PDF)" in html
     assert "pbi-mandal-slicer-select" in html
+
+
+def test_power_bi_pdf_endpoint_single_mandal():
+    resp = client.get("/api/tax/powerbi-report.pdf?district=Khammam&mandal=Bonakal")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    reader = PdfReader(io.BytesIO(resp.content))
+    assert len(reader.pages) == 1
+
+
+def test_power_bi_pdf_endpoint_district_all_mandals():
+    resp = client.get("/api/tax/powerbi-report.pdf?district=Khammam&mandal=all")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    reader = PdfReader(io.BytesIO(resp.content))
+    assert len(reader.pages) == 21

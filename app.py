@@ -38,6 +38,7 @@ from report_generator import (
 from tax_dcb_html import TAX_PAGE_HTML
 import tax_service
 import dcb_pdf_generator
+import powerbi_pdf_generator
 
 
 
@@ -1013,6 +1014,15 @@ def create_app(
     @api.get("/api/tax/download-pdf")
     def download_tax_pdf(district: str = "Khammam", mandal: str = "all") -> Response:
         filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district, mandal)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @api.get("/api/tax/powerbi-report.pdf")
+    def download_powerbi_pdf(district: str = "Khammam", mandal: str = "all", force: bool = False) -> Response:
+        filename, pdf_bytes = powerbi_pdf_generator.get_or_generate_powerbi_pdf(district, mandal, force_regenerate=force)
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",

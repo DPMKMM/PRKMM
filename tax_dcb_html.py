@@ -615,16 +615,18 @@ TAX_PAGE_HTML = """<!doctype html>
       background: #ffffff;
       color: #0f172a;
       font-weight: 800;
-      padding: 6px 8px;
+      padding: 6px 6px;
       border: 1px solid #cbd5e1;
       text-align: left;
-      font-size: 0.78rem;
+      font-size: 0.77rem;
+      white-space: nowrap !important;
       z-index: 5;
     }
     .pbi-table td {
-      padding: 5px 8px;
+      padding: 4px 6px;
       border: 1px solid #e2e8f0;
       color: #1e293b;
+      white-space: nowrap;
     }
     .pbi-table tbody tr:hover {
       background: #f8fafc;
@@ -632,18 +634,18 @@ TAX_PAGE_HTML = """<!doctype html>
     /* Power BI Data Bars */
     .pbi-databar-td {
       position: relative;
-      padding: 3px 6px !important;
+      padding: 2px 4px !important;
       text-align: right;
-      min-width: 85px;
+      min-width: 80px;
     }
     .pbi-databar-wrap {
       position: relative;
       width: 100%;
-      height: 22px;
+      height: 20px;
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      padding-right: 6px;
+      padding-right: 4px;
       border-radius: 2px;
       overflow: hidden;
     }
@@ -661,13 +663,13 @@ TAX_PAGE_HTML = """<!doctype html>
       position: relative;
       z-index: 2;
       font-weight: 850;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: #0f172a;
     }
     /* SVG Gauge */
     .gauge-svg {
       width: 100%;
-      max-width: 250px;
+      max-width: 230px;
       height: auto;
       display: block;
       margin: 0 auto;
@@ -678,7 +680,19 @@ TAX_PAGE_HTML = """<!doctype html>
       }
     }
     @media print {
-      body { background: white !important; margin: 0 !important; padding: 0 !important; }
+      @page {
+        size: A4 landscape;
+        margin: 6mm 8mm;
+      }
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       .navbar, .hero-strip, .controls-card, .kpi-grid, .tabs-wrap, #pane-pdf, #pane-abstract, #pane-detail, .pbi-toolbar-bar, #status-box, footer {
         display: none !important;
       }
@@ -698,14 +712,24 @@ TAX_PAGE_HTML = """<!doctype html>
         display: block !important;
         padding: 0 !important;
         width: 100% !important;
+        max-width: 100% !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+      .pbi-row {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-top: 8px !important;
+        gap: 8px !important;
+      }
+      .pbi-card {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        padding: 6px !important;
       }
       .pbi-table-wrap {
-        max-height: none !important;
-        overflow: visible !important;
-      }
-      @page {
-        size: A4 landscape;
-        margin: 8mm;
+        max-height: 290px !important;
+        overflow: hidden !important;
       }
     }
   </style>
@@ -909,10 +933,10 @@ TAX_PAGE_HTML = """<!doctype html>
             </div>
 
             <!-- Top Row: Mandal Table (Left) + Clustered DCB by Mandal (Right) -->
-            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:10px;">
               <!-- Left: Mandal DCB Summary Table with Data Bars -->
               <div class="pbi-card" style="flex:1 1 48%; min-width:0; padding:10px;">
-                <div class="pbi-table-wrap" style="max-height:430px; overflow-y:auto;">
+                <div class="pbi-table-wrap" style="max-height:295px; overflow-y:auto;">
                   <table class="pbi-table" id="pbi-dist-table">
                     <thead>
                       <tr>
@@ -933,18 +957,18 @@ TAX_PAGE_HTML = """<!doctype html>
               <!-- Right: Demand, Collection and Balance by Mandal Clustered Column Chart -->
               <div class="pbi-card" style="flex:1 1 52%; min-width:0; padding:10px;">
                 <div class="pbi-card-title">Demand, Collection and Balance by Mandal</div>
-                <div style="flex:1; min-height:380px; position:relative;">
+                <div style="flex:1; min-height:285px; max-height:285px; position:relative;">
                   <canvas id="chart-dist-clustered"></canvas>
                 </div>
               </div>
             </div>
 
             <!-- Bottom Row: Percentage Ranking (Left) + Donut (Mid) + Gauge (Right) -->
-            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:10px;">
               <!-- Bottom Left: PERCENTAGE OF COLLECTION BY MANDAL -->
               <div class="pbi-card" style="flex:1 1 45%; min-width:0; padding:10px;">
                 <div class="pbi-card-title">PERCENTAGE OF COLLECTION BY MANDAL</div>
-                <div style="flex:1; min-height:280px; position:relative;">
+                <div style="flex:1; min-height:215px; max-height:215px; position:relative;">
                   <canvas id="chart-dist-ranking"></canvas>
                 </div>
               </div>
@@ -952,17 +976,17 @@ TAX_PAGE_HTML = """<!doctype html>
               <!-- Bottom Middle: Overall DCB Breakdown Donut -->
               <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:center;">
                 <div class="pbi-card-title" style="width:100%; text-align:left;">Overall DCB Breakdown</div>
-                <div style="flex:1; min-height:280px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
+                <div style="flex:1; min-height:215px; max-height:215px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
                   <canvas id="chart-dist-donut"></canvas>
                 </div>
               </div>
 
               <!-- Bottom Right: DISTRICT TAX COLLECTION % Gauge -->
-              <div class="pbi-card" style="flex:1 1 28%; min-width:0; padding:12px; align-items:center; justify-content:center;">
-                <div style="color:#DC2626; font-weight:850; font-size:1.05rem; margin-bottom:6px; text-align:center; letter-spacing:0.02em;">
+              <div class="pbi-card" style="flex:1 1 28%; min-width:0; padding:10px; align-items:center; justify-content:center;">
+                <div style="color:#DC2626; font-weight:850; font-size:1.0rem; margin-bottom:4px; text-align:center; letter-spacing:0.02em;">
                   DISTRICT TAX COLLECTION %
                 </div>
-                <div style="width:100%; max-width:270px; margin:0 auto; text-align:center;">
+                <div style="width:100%; max-width:230px; margin:0 auto; text-align:center;">
                   <svg id="svg-dist-gauge" viewBox="0 0 200 135" class="gauge-svg"></svg>
                 </div>
               </div>
@@ -986,12 +1010,12 @@ TAX_PAGE_HTML = """<!doctype html>
             </div>
 
             <!-- Two-Column Layout (38% Left / 62% Right) -->
-            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:10px;">
               <!-- Left Column: GP Table (Top) + MANDAL % Gauge (Bottom) -->
               <div style="flex:1 1 38%; min-width:0; display:flex; flex-direction:column; gap:12px;">
                 <!-- GP DCB Table with Data Bars -->
                 <div class="pbi-card" style="padding:10px;">
-                  <div class="pbi-table-wrap" style="max-height:430px; overflow-y:auto;">
+                  <div class="pbi-table-wrap" style="max-height:310px; overflow-y:auto;">
                     <table class="pbi-table" id="pbi-mandal-table">
                       <thead>
                         <tr>
@@ -1009,11 +1033,11 @@ TAX_PAGE_HTML = """<!doctype html>
                 </div>
 
                 <!-- MANDAL % Gauge -->
-                <div class="pbi-card" style="padding:12px; align-items:center; justify-content:center;">
-                  <div style="color:#0F172A; font-weight:850; font-size:1.05rem; margin-bottom:6px; text-align:center; letter-spacing:0.02em;">
+                <div class="pbi-card" style="padding:10px; align-items:center; justify-content:center;">
+                  <div style="color:#0F172A; font-weight:850; font-size:1.0rem; margin-bottom:4px; text-align:center; letter-spacing:0.02em;">
                     MANDAL %
                   </div>
-                  <div style="width:100%; max-width:270px; margin:0 auto; text-align:center;">
+                  <div style="width:100%; max-width:230px; margin:0 auto; text-align:center;">
                     <svg id="svg-mandal-gauge" viewBox="0 0 200 135" class="gauge-svg"></svg>
                   </div>
                 </div>
@@ -1024,7 +1048,7 @@ TAX_PAGE_HTML = """<!doctype html>
                 <!-- Top Chart: GP Wise Collection percentage -->
                 <div class="pbi-card" style="padding:10px;">
                   <div class="pbi-card-title">GP Wise Collection percentage</div>
-                  <div style="flex:1; min-height:280px; position:relative;">
+                  <div style="flex:1; min-height:230px; max-height:230px; position:relative;">
                     <canvas id="chart-mandal-ranking"></canvas>
                   </div>
                 </div>
@@ -1032,7 +1056,7 @@ TAX_PAGE_HTML = """<!doctype html>
                 <!-- Bottom Chart: Panchayat wise Demand, Collection and Balance -->
                 <div class="pbi-card" style="padding:10px;">
                   <div class="pbi-card-title">Panchayat wise Demand, Collection and Balance</div>
-                  <div style="flex:1; min-height:300px; position:relative;">
+                  <div style="flex:1; min-height:240px; max-height:240px; position:relative;">
                     <canvas id="chart-mandal-dcb"></canvas>
                   </div>
                 </div>
@@ -1420,46 +1444,29 @@ TAX_PAGE_HTML = """<!doctype html>
       loadData(dist);
     }
 
-    async function downloadPowerBiPdf() {
-      const container = document.getElementById('pbi-canvas-export');
-      if (!container || container.style.display === 'none') {
-        alert('Please select a district and generate the report first.');
+    function downloadPowerBiPdf() {
+      const dist = document.getElementById('district-select').value;
+      if (!dist) {
+        showStatus('Please select a district and click Generate Report first.', 'error');
         return;
       }
-      const dist = document.getElementById('district-select').value || 'District';
       const mandal = document.getElementById('mandal-select').value;
       const isDistrictView = (mandal === 'all' || !mandal);
-      const fileName = isDistrictView
-        ? `${dist}_District_PowerBI_DCB_Report.pdf`
-        : `${dist}_${mandal}_Mandal_PowerBI_DCB_Report.pdf`;
+      const mandalParam = isDistrictView ? '' : `&mandal=${encodeURIComponent(mandal)}`;
 
-      showStatus('Preparing high-resolution Power BI Report PDF...', 'info');
+      const msg = isDistrictView
+        ? `Generating Official A4 Landscape Power BI Report (${dist} District + All Mandals)...`
+        : `Generating Official A4 Landscape Power BI Report for ${mandal} Mandal...`;
+      showStatus(msg, 'info');
 
-      const opt = {
-        margin: [6, 8, 6, 8],
-        filename: fileName,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          scrollY: 0
-        },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-      };
-
-      try {
-        if (typeof html2pdf !== 'undefined') {
-          await html2pdf().set(opt).from(container).save();
-          showStatus('Power BI Report PDF downloaded successfully!', 'info');
-          setTimeout(hideStatus, 4000);
-        } else {
-          window.print();
-        }
-      } catch (err) {
-        console.error('PDF export error:', err);
-        window.print();
-      }
+      const dlUrl = `/api/tax/powerbi-report.pdf?district=${encodeURIComponent(dist)}${mandalParam}`;
+      const link = document.createElement('a');
+      link.href = dlUrl;
+      link.setAttribute('download', isDistrictView ? `${dist}_PowerBI_DCB_Report.pdf` : `${dist}_${mandal}_PowerBI_DCB_Report.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(hideStatus, 6000);
     }
 
     function renderExecutiveVisualReport(data) {
