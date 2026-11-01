@@ -387,10 +387,7 @@ def _read_html_table(raw: bytes) -> pd.DataFrame:
 
 
 def read_source_file(filename: str, raw_bytes: bytes) -> pd.DataFrame:
-    """Read CSV, XLS/XLSX, or an HTML table exported with an .xls extension."""
-    extension = Path(filename).suffix.lower()
-    if extension not in {".xls", ".xlsx", ".csv"}:
-        raise InputValidationError("Allowed file types are .xls, .xlsx, and .csv.")
+    """Read CSV, XLS/XLSX, or an HTML table (even when saved with .xls, .html, .htm, .txt, or web extension)."""
     if not raw_bytes:
         raise InputValidationError("The uploaded file is empty.")
 
@@ -399,29 +396,50 @@ def read_source_file(filename: str, raw_bytes: bytes) -> pd.DataFrame:
         prefix.startswith(b"<!doctype html")
         or prefix.startswith(b"<html")
         or (b"<table" in prefix and (b"<tr" in prefix or b"<th" in prefix))
+        or b"xmlns:x=\"urn:schemas-microsoft-com:office:excel\"" in prefix
+        or b"xmlns:o=\"urn:schemas-microsoft-com:office:office\"" in prefix
+        or b"<body" in prefix
     )
     if looks_html:
         frame = _read_html_table(raw_bytes)
-    elif extension == ".csv":
-        try:
-            try:
-                frame = pd.read_csv(
-                    io.BytesIO(raw_bytes), sep=None, engine="python", encoding="utf-8-sig", keep_default_na=False,
-                )
-            except UnicodeDecodeError:
-                frame = pd.read_csv(
-                    io.BytesIO(raw_bytes), sep=None, engine="python", encoding="cp1252", keep_default_na=False,
-                )
-        except Exception as exc:
-            raise InputValidationError("Could not read the CSV file. Check its encoding and delimiter.") from exc
     else:
-        try:
-            frame = pd.read_excel(io.BytesIO(raw_bytes), sheet_name=0)
-        except Exception as exc:
-            raise InputValidationError(
-                "Could not read the upload as HTML or Excel. Upload a valid .xls/.xlsx workbook "
-                "or an HTML table saved with an .xls extension."
-            ) from exc
+        # Check for Excel signatures or try Excel
+        is_xlsx_zip = raw_bytes.startswith(b"PK\x03\x04")
+        is_ole_xls = raw_bytes.startswith(b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1")
+        extension = Path(filename).suffix.lower()
+
+        frame = None
+        if is_xlsx_zip or is_ole_xls or extension in {".xls", ".xlsx"}:
+            try:
+                frame = pd.read_excel(io.BytesIO(raw_bytes), sheet_name=0)
+            except Exception:
+                try:
+                    frame = _read_html_table(raw_bytes)
+                except Exception:
+                    frame = None
+
+        if frame is None:
+            # Try CSV / delimiter
+            for enc in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
+                try:
+                    frame = pd.read_csv(
+                        io.BytesIO(raw_bytes), sep=None, engine="python", encoding=enc, keep_default_na=False,
+                    )
+                    break
+                except Exception:
+                    continue
+
+        if frame is None:
+            # Fallback to Excel then HTML
+            try:
+                frame = pd.read_excel(io.BytesIO(raw_bytes), sheet_name=0)
+            except Exception:
+                try:
+                    frame = _read_html_table(raw_bytes)
+                except Exception as exc:
+                    raise InputValidationError(
+                        "Could not parse the uploaded file. Please ensure it is a valid attendance file (Excel, CSV, or portal web export table)."
+                    ) from exc
 
     frame.columns = [str(column).replace("\n", " ").strip() for column in frame.columns]
     frame, missing = _canonicalize_columns(frame)

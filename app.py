@@ -277,6 +277,8 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       padding: 4px 8px;
       border-radius: 6px;
       transition: all 0.15s;
+      pointer-events: auto !important;
+      -webkit-tap-highlight-color: transparent;
     }
     .download-toast-close:hover {
       color: #ffffff;
@@ -286,26 +288,30 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       display: flex;
       gap: 8px;
       padding: 0 16px 14px 16px;
+      pointer-events: auto !important;
     }
     .download-toast-btn-open {
       flex: 1;
       background: #16a34a;
-      color: white;
+      color: white !important;
       border: none;
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       transition: background 0.15s;
       text-decoration: none;
+      pointer-events: auto !important;
+      -webkit-tap-highlight-color: transparent;
     }
     .download-toast-btn-open:hover, .download-toast-btn-open:active {
       background: #15803d;
+      color: white !important;
     }
     .download-toast-btn-dismiss {
       background: rgba(255, 255, 255, 0.1);
@@ -317,8 +323,10 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s;
+      pointer-events: auto !important;
+      -webkit-tap-highlight-color: transparent;
     }
-    .download-toast-btn-dismiss:hover {
+    .download-toast-btn-dismiss:hover, .download-toast-btn-dismiss:active {
       background: rgba(255, 255, 255, 0.2);
     }
     .download-toast-progress {
@@ -509,19 +517,19 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           <form id="upload-form" class="district-form">
             <div class="field-group">
               <label for="attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
-              <input id="attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
-              <div class="hint">Portal export containing District, Division, Mandal, Panchayat Name, LGD, First &amp; Second Attendance, and DSR Status.</div>
+              <input id="attendance-file" name="file" type="file" required>
+              <div class="hint">Upload web-downloaded report or portal export (.xls, .xlsx, .csv, or HTML table).</div>
             </div>
 
             <div class="field-group">
               <label for="presentees-file">2. Presentees PS Details File <span class="badge badge-rec">Recommended</span></label>
-              <input id="presentees-file" name="presentees_file" type="file" accept=".xls,.xlsx,.csv">
+              <input id="presentees-file" name="presentees_file" type="file">
               <div class="hint">Export of present secretaries with Panchayat LGD Code, PS Name, Designation, Nature of Posting, and Mobile Number.</div>
             </div>
 
             <div class="field-group">
               <label for="absentees-file">3. Absentees PS Details File <span class="badge badge-opt">Optional</span></label>
-              <input id="absentees-file" name="absentees_file" type="file" accept=".xls,.xlsx,.csv">
+              <input id="absentees-file" name="absentees_file" type="file">
               <div class="hint">Export of absent secretaries. Not required if all secretaries submitted attendance.</div>
             </div>
 
@@ -541,8 +549,8 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           <form id="mandal-form">
             <div class="field-group">
               <label for="mandal-attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
-              <input id="mandal-attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
-              <div class="hint">Upload your attendance raw data file. Mandal name is auto-detected directly from the file.</div>
+              <input id="mandal-attendance-file" name="file" type="file" required>
+              <div class="hint">Upload your attendance raw data file (.xls, .xlsx, .csv, or portal export). Mandal name is auto-detected directly from the file.</div>
             </div>
 
             <div class="field-group">
@@ -575,13 +583,13 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           <div id="download-toast-title" class="download-toast-title">Generating DSR Report...</div>
           <div id="download-toast-subtitle" class="download-toast-subtitle">Processing attendance data, please wait...</div>
         </div>
-        <button type="button" class="download-toast-close" onclick="dismissDownloadToast()" aria-label="Close notification">&times;</button>
+        <button type="button" id="download-toast-close-btn" class="download-toast-close" onclick="window.dismissDownloadToast &amp;&amp; window.dismissDownloadToast()" aria-label="Close notification">&times;</button>
       </div>
       <div id="download-toast-actions" class="download-toast-actions" style="display:none;">
-        <button type="button" id="download-toast-open-btn" class="download-toast-btn-open">
+        <a id="download-toast-open-btn" class="download-toast-btn-open" href="#" target="_blank" rel="noopener noreferrer">
           <span>📄</span> Open / View PDF
-        </button>
-        <button type="button" class="download-toast-btn-dismiss" onclick="dismissDownloadToast()">
+        </a>
+        <button type="button" id="download-toast-dismiss-btn" class="download-toast-btn-dismiss" onclick="window.dismissDownloadToast &amp;&amp; window.dismissDownloadToast()">
           Dismiss
         </button>
       </div>
@@ -685,19 +693,27 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }
       }
 
-      function dismissDownloadToast() {
+      window.dismissDownloadToast = function() {
         const container = document.getElementById('download-toast-container');
         const card = container ? container.querySelector('.download-toast-card') : null;
-        if (!container || !card) return;
-        card.classList.add('toast-exit');
-        setTimeout(() => {
+        if (!container) return;
+        if (card) {
+          card.classList.add('toast-exit');
+          setTimeout(() => {
+            container.style.display = 'none';
+            card.classList.remove('toast-exit');
+          }, 260);
+        } else {
           container.style.display = 'none';
-          card.classList.remove('toast-exit');
-        }, 260);
+        }
         if (_toastTimer) {
           clearTimeout(_toastTimer);
           _toastTimer = null;
         }
+      };
+
+      function dismissDownloadToast() {
+        window.dismissDownloadToast();
       }
 
       function showToastLoading(title, subtitle) {
@@ -728,7 +744,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         progressBar.className = 'download-toast-progress loading';
       }
 
-      function showToastSuccess(title, subtitle, filename, blobUrl) {
+      function showToastSuccess(title, subtitle, filename, viewUrl) {
         const container = document.getElementById('download-toast-container');
         const iconWrap = document.getElementById('download-toast-icon');
         const titleEl = document.getElementById('download-toast-title');
@@ -745,9 +761,10 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         progressBar.style.display = 'none';
         actionsEl.style.display = 'flex';
 
-        if (blobUrl) {
+        if (viewUrl) {
           openBtn.style.display = 'inline-flex';
-          openBtn.onclick = () => window.open(blobUrl, '_blank');
+          openBtn.href = viewUrl;
+          openBtn.onclick = null;
         } else {
           openBtn.style.display = 'none';
         }
@@ -762,7 +779,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         if (_toastTimer) clearTimeout(_toastTimer);
         _toastTimer = setTimeout(() => {
-          dismissDownloadToast();
+          window.dismissDownloadToast();
         }, 14000);
       }
 
@@ -786,18 +803,18 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         if (_toastTimer) clearTimeout(_toastTimer);
         _toastTimer = setTimeout(() => {
-          dismissDownloadToast();
+          window.dismissDownloadToast();
         }, 8000);
       }
 
-      function showMessage(element, message, status = 'info', blobUrl = null, filename = '') {
+      function showMessage(element, message, status = 'info', viewUrl = null, filename = '') {
         if (!element) return;
         if (status === true) status = 'success';
         if (status === false) status = 'error';
 
         element.className = `message active ${status}`;
         if (status === 'success') {
-          let openBtnHtml = blobUrl ? `<button type="button" class="message-btn-open" onclick="window.open('${blobUrl}', '_blank')"><span>📄</span> Open PDF</button>` : '';
+          let openBtnHtml = viewUrl ? `<a href="${viewUrl}" target="_blank" rel="noopener noreferrer" class="message-btn-open"><span>📄</span> Open PDF</a>` : '';
           element.innerHTML = `
             <div class="message-content">
               <div class="message-text">
@@ -924,9 +941,10 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           link.click();
           link.remove();
 
-          // Show floating toast and banner notification
-          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, objectUrl);
-          showMessage(messageEl, 'Report downloaded successfully! You can upload another file or view the PDF.', 'success', objectUrl, fileName);
+          // Show floating toast and banner notification with direct view URL
+          const viewUrl = `/api/web/reports/${encodeURIComponent(jobId)}/view`;
+          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, viewUrl);
+          showMessage(messageEl, 'Report downloaded successfully! You can upload another file or view the PDF.', 'success', viewUrl, fileName);
 
           // Keep blob URL active for 5 minutes for direct viewing
           setTimeout(() => {
@@ -973,6 +991,12 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }
         runReportJob(data, document.getElementById('mandal-generate-button'), document.getElementById('mandal-report-message'), `${mandalName || 'Mandal'}_Attendance_Report.pdf`);
       });
+
+      // Wire direct event listeners for toast dismissal
+      const closeBtn = document.getElementById('download-toast-close-btn');
+      if (closeBtn) closeBtn.onclick = () => window.dismissDownloadToast();
+      const dismissBtn = document.getElementById('download-toast-dismiss-btn');
+      if (dismissBtn) dismissBtn.onclick = () => window.dismissDownloadToast();
 
       // Handle initial route on page load
       handleHash();
@@ -1343,7 +1367,7 @@ def create_app(
         return _get_web_job(job_id, request).public_dict()
 
     @api.get("/api/web/reports/{job_id}/download", include_in_schema=False)
-    def download_web_report(job_id: str, request: Request) -> Response:
+    def download_web_report(job_id: str, request: Request, inline: bool = False) -> Response:
         record = _get_web_job(job_id, request)
         if record.status != "Completed" or not record.output_pdf:
             raise HTTPException(status_code=409, detail=f"Report is not ready (status: {record.status}).")
@@ -1352,14 +1376,19 @@ def create_app(
         except Exception as exc:
             status_code, message = _safe_error(exc)
             raise HTTPException(status_code=status_code, detail=message) from None
+        disposition = "inline" if inline else "attachment"
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f'attachment; filename="{_record_report_filename(record)}"',
+                "Content-Disposition": f'{disposition}; filename="{_record_report_filename(record)}"',
                 "Access-Control-Expose-Headers": "Content-Disposition",
             },
         )
+
+    @api.get("/api/web/reports/{job_id}/view", include_in_schema=False)
+    def view_web_report(job_id: str, request: Request) -> Response:
+        return download_web_report(job_id, request, inline=True)
 
     # -------------------------------------------------------------
     # Tax DCB Consolidation & PDF Report Endpoints

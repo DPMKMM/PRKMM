@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Protocol
 
 
-ALLOWED_EXTENSIONS = {".xls", ".xlsx", ".csv"}
+ALLOWED_EXTENSIONS = {
+    ".xls", ".xlsx", ".csv", ".html", ".htm", ".txt", ".tsv", ".ods",
+    ".xml", ".bin", ".dat", ".download", ""
+}
 PROCESSING_STALE_SECONDS = 15 * 60
 
 
