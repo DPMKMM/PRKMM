@@ -1517,7 +1517,6 @@ def create_app(
         candidate_paths = [
             BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
             BASE_DIR / "bundled_raw_dsr.xls",
-            BASE_DIR / "bundled_allgpdata.xls",
         ]
         source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
         if not source_path:
@@ -1578,25 +1577,27 @@ def create_app(
         candidate_paths = [
             BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
             BASE_DIR / "bundled_raw_dsr.xls",
-            BASE_DIR / "bundled_allgpdata.xls",
         ]
         source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
         if not source_path:
             raise HTTPException(status_code=404, detail="Automated data file not found.")
 
-        report = process_attendance_file(source_path.name, source_path.read_bytes())
-        return {
-            "district_name": report.district_name,
-            "report_date": f"{report.report_date:%d-%b-%Y}",
-            "totals": report.totals,
-            "mandal_rows": report.mandal_rows,
-        }
+        try:
+            report = process_attendance_file(source_path.name, source_path.read_bytes())
+            return {
+                "district_name": report.district_name,
+                "report_date": f"{report.report_date:%d-%b-%Y}",
+                "totals": report.totals,
+                "mandal_rows": report.mandal_rows,
+            }
+        except Exception as exc:
+            status_code, safe_message = _safe_error(exc)
+            raise HTTPException(status_code=status_code, detail=safe_message) from None
 
     def _serve_naresh_pdf(inline: bool = True) -> Response:
         candidate_paths = [
             BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
             BASE_DIR / "bundled_raw_dsr.xls",
-            BASE_DIR / "bundled_allgpdata.xls",
         ]
         source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
         if not source_path:
@@ -1607,10 +1608,14 @@ def create_app(
         if cached_pdf.exists() and cached_pdf.stat().st_size > 0:
             pdf_bytes = cached_pdf.read_bytes()
         else:
-            report = process_attendance_file(source_path.name, source_path.read_bytes())
-            tmp_pdf = BASE_DIR / "data" / "reports" / f"Khammam_Official_DSR_Report_{today_str}.pdf"
-            generate_pdf(report, tmp_pdf)
-            pdf_bytes = tmp_pdf.read_bytes()
+            try:
+                report = process_attendance_file(source_path.name, source_path.read_bytes())
+                tmp_pdf = BASE_DIR / "data" / "reports" / f"Khammam_Official_DSR_Report_{today_str}.pdf"
+                generate_pdf(report, tmp_pdf)
+                pdf_bytes = tmp_pdf.read_bytes()
+            except Exception as exc:
+                status_code, safe_message = _safe_error(exc)
+                raise HTTPException(status_code=status_code, detail=safe_message) from None
 
         disposition = "inline" if inline else "attachment"
         filename = f"Khammam_Official_DSR_Report_{today_str}.pdf"
