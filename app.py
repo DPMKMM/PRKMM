@@ -246,7 +246,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         <span class="hero-badge">Panchayat Raj &amp; Rural Development Department</span>
         <h1 class="hero-title">Executive Monitoring &amp; Analytics Portal</h1>
         <p class="hero-desc">
-          Official departmental analytics platform empowering District Officers and Mandal Officers to automated performance tracking, morning attendance compliance, and daily status analytics.
+          An integrated departmental analytics platform designed to empower District Officers and Mandal Officers with automated performance monitoring, daily morning attendance tracking, compliance management, and real-time administrative status analytics. It enables transparent monitoring, efficient reporting, and data-driven decision-making across all administrative levels.
         </p>
       </section>
 
@@ -385,7 +385,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
   </main>
 
   <footer>
-    Executive Analytics &amp; Monitoring Portal Designed and Developed by DPMs
+    Executive Analytics &amp; Monitoring Portal Designed and Developed by DPM Khammam
   </footer>
 
   <script>
