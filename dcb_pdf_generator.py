@@ -14,6 +14,7 @@ from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.graphics.shapes import Drawing, Rect, String
 
 import tax_service
 
@@ -71,6 +72,34 @@ def get_gradient_color(pct: float | int) -> tuple[str, str]:
     text_color = "#000000" if lum > 0.55 else "#FFFFFF"
     hex_bg = f"#{r:02X}{g:02X}{b:02X}"
     return hex_bg, text_color
+
+
+def make_pct_flowable(pct: float | int, h_row: float, font_size: float = 7.0) -> Drawing:
+    """Create a 'line column type' meter for the % column in PDF:
+    Displays the bold percentage text with a proportional progress line bar underneath.
+    """
+    try:
+        p = max(0, min(100, int(round(float(pct)))))
+    except (ValueError, TypeError):
+        p = 0
+    bg_hex, _ = get_gradient_color(p)
+    w_draw = 33.0
+    h_draw = max(13.0, min(h_row - 2.0, 19.0))
+    d = Drawing(w_draw, h_draw)
+
+    text_y = h_draw / 2.0 + 1.2
+    bar_y = max(1.5, h_draw / 2.0 - 5.2)
+    bar_h = 3.2
+
+    # Percentage number
+    d.add(String(w_draw / 2.0, text_y, f"{p}%", fontName="Helvetica-Bold", fontSize=font_size, textAnchor="middle", fillColor=colors.HexColor("#111827")))
+    # Track line
+    d.add(Rect(0, bar_y, w_draw, bar_h, fillColor=colors.HexColor("#E2E8F0"), strokeColor=None, rx=1.5, ry=1.5))
+    # Filled progress bar line
+    bar_w = max(0.0, min(w_draw, w_draw * (p / 100.0)))
+    if bar_w > 0:
+        d.add(Rect(0, bar_y, max(bar_w, 1.5), bar_h, fillColor=colors.HexColor(bg_hex), strokeColor=None, rx=1.5, ry=1.5))
+    return d
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -411,26 +440,14 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_current", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_total", 0)), cur_cell_right),
-                    Paragraph(str(pct_val), row_pct_style),
+                    make_pct_flowable(pct_val, h_row, f_sz),
                 ]
                 row_idx = len(table_data)
                 table_data.append(row)
                 row_heights.append(h_row)
 
-                # Set % background to continuous Green-Yellow-Red gradient
-                table_styles.append(("BACKGROUND", (12, row_idx), (12, row_idx), colors.HexColor(row_bg_hex)))
-
             if is_last_chunk_of_mandal:
                 tot_idx = len(table_data)
-                tot_pct_style = ParagraphStyle(
-                    f"TotPct_{m_idx}_{page_idx}",
-                    parent=styles["Normal"],
-                    fontName="Helvetica-Bold",
-                    fontSize=f_sz + 0.3,
-                    leading=f_lead,
-                    alignment=1,
-                    textColor=colors.HexColor(tot_fg_hex),
-                )
                 cur_total_row = [
                     Paragraph("", tot_cell_label),
                     Paragraph(f"{mandal_name} Total", tot_cell_label),
@@ -444,11 +461,10 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(tot_b_arr), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_cur), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_tot), tot_cell_num),
-                    Paragraph(str(tot_pct), tot_pct_style),
+                    make_pct_flowable(tot_pct, h_row, f_sz),
                 ]
                 table_data.append(cur_total_row)
                 row_heights.append(h_row)
-                table_styles.append(("BACKGROUND", (12, tot_idx), (12, tot_idx), colors.HexColor(tot_bg_hex)))
                 table_styles.append(("SPAN", (0, tot_idx), (1, tot_idx)))  # Span S.No and Mandal Name
 
             t = Table(table_data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)

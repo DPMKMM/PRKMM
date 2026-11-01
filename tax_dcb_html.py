@@ -351,6 +351,33 @@ TAX_PAGE_HTML = """<!doctype html>
     .center-cell {
       text-align: center;
     }
+    .pct-line-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      width: 62px;
+      margin: 0 auto;
+    }
+    .pct-line-val {
+      font-weight: 800;
+      font-size: 0.82rem;
+      color: #111827;
+      line-height: 1.1;
+    }
+    .pct-line-track {
+      width: 100%;
+      height: 5px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pct-line-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.35s ease;
+    }
     .pct-meter {
       position: relative;
       width: 68px;
@@ -723,10 +750,12 @@ TAX_PAGE_HTML = """<!doctype html>
     function renderPctCell(pctVal) {
       const p = Math.max(0, Math.min(100, Math.round(Number(pctVal) || 0)));
       const { bg } = getGradientColor(p);
-      const fillW = p > 0 ? Math.max(p, 3) : 0;
-      return `<div class="pct-meter" title="${p}% Collection">
-        <div class="pct-meter-fill" style="width: ${fillW}%; background: ${bg};"></div>
-        <span class="pct-meter-text">${p}%</span>
+      const fillW = p > 0 ? Math.max(p, 2) : 0;
+      return `<div class="pct-line-col" title="${p}% Collection">
+        <span class="pct-line-val">${p}%</span>
+        <div class="pct-line-track">
+          <div class="pct-line-fill" style="width: ${fillW}%; background: ${bg};"></div>
+        </div>
       </div>`;
     }
 
