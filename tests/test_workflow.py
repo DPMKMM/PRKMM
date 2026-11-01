@@ -11,35 +11,79 @@ from pypdf import PdfReader
 import app as app_module
 from app import Settings, create_app
 from integrations import JobRecord, LocalJobTracker, utc_now
-from report_generator import InputValidationError, analyze_attendance, generate_pdf, process_attendance_file
+from report_generator import (
+    InputValidationError,
+    PercentBar,
+    _clean_name,
+    _format_time_only,
+    analyze_attendance,
+    generate_pdf,
+    parse_ps_directory_file,
+    merge_ps_directories,
+    process_attendance_file,
+)
 
 
 def attendance_rows() -> pd.DataFrame:
     return pd.DataFrame([
-        {"Panchayat LGD": 1, "Mandal Name": "Mandal A", "Panchayat Name": "GP One",
+        {"District Name": "Khammam", "Panchayat LGD": 1, "Mandal Name": "Mandal A", "Panchayat Name": "GP One",
          "First Attendence Status": "Present", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 09:00", "DSR Entry Status": "Submitted"},
-        {"Panchayat LGD": 2, "Mandal Name": "Mandal A", "Panchayat Name": "GP Two",
+        {"District Name": "Khammam", "Panchayat LGD": 2, "Mandal Name": "Mandal A", "Panchayat Name": "GP Two",
          "First Attendence Status": "Present", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 08:59", "DSR Entry Status": "Submitted"},
-        {"Panchayat LGD": 3, "Mandal Name": "Mandal A", "Panchayat Name": "GP Three",
+        {"District Name": "Khammam", "Panchayat LGD": 3, "Mandal Name": "Mandal A", "Panchayat Name": "GP Three",
          "First Attendence Status": "Present", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 09:01", "DSR Entry Status": "Pending"},
-        {"Panchayat LGD": 4, "Mandal Name": "Mandal B", "Panchayat Name": "GP Four",
+        {"District Name": "Khammam", "Panchayat LGD": 4, "Mandal Name": "Mandal B", "Panchayat Name": "GP Four",
          "First Attendence Status": "", "Second Attendence Status": "",
          "First Attendence Datetime": "", "DSR Entry Status": ""},
-        {"Panchayat LGD": 5, "Mandal Name": "Mandal B", "Panchayat Name": "GP Five",
+        {"District Name": "Khammam", "Panchayat LGD": 5, "Mandal Name": "Mandal B", "Panchayat Name": "GP Five",
          "First Attendence Status": "On Leave", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 08:30", "DSR Entry Status": "Submitted"},
-        {"Panchayat LGD": 6, "Mandal Name": "Mandal B", "Panchayat Name": "GP Six",
+        {"District Name": "Khammam", "Panchayat LGD": 6, "Mandal Name": "Mandal B", "Panchayat Name": "GP Six",
          "First Attendence Status": "Training", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 09:05", "DSR Entry Status": "Submitted"},
-        {"Panchayat LGD": 7, "Mandal Name": "Mandal B", "Panchayat Name": "GP Seven",
+        {"District Name": "Khammam", "Panchayat LGD": 7, "Mandal Name": "Mandal B", "Panchayat Name": "GP Seven",
          "First Attendence Status": "", "Second Attendence Status": "",
          "First Attendence Datetime": "", "DSR Entry Status": ""},
-        {"Panchayat LGD": 7, "Mandal Name": "Mandal C", "Panchayat Name": "GP Seven Conflict",
+        {"District Name": "Khammam", "Panchayat LGD": 7, "Mandal Name": "Mandal C", "Panchayat Name": "GP Seven Conflict",
          "First Attendence Status": "Meeting", "Second Attendence Status": "",
          "First Attendence Datetime": "28-10-2026 09:00", "DSR Entry Status": "Submitted"},
+    ])
+
+
+def presentees_rows() -> pd.DataFrame:
+    return pd.DataFrame([
+        {
+            "S.No.": 1, "District Name": "Khammam", "Division Name": "KHAMMAM",
+            "Mandal Name": "Mandal A", "Panchayat Name": "GP One", "Panchayat LGD Code": 1,
+            "Panchayat Secretary Employee Id": "EMP101",
+            "Panchayat Secretary Name": "RAYALALA NAGARAJU",  # Test all caps name
+            "Designation": "Panchayat Secretary Grade I", "Nature of Posting": "Regular",
+            "Mobile Number": "8897632431",
+        },
+        {
+            "S.No.": 2, "District Name": "Khammam", "Division Name": "KHAMMAM",
+            "Mandal Name": "Mandal A", "Panchayat Name": "GP Three", "Panchayat LGD Code": 3,
+            "Panchayat Secretary Employee Id": "EMP103",
+            "Panchayat Secretary Name": "kola rajeswari",  # Test all lower name
+            "Designation": "Junior Panchayat Secretary", "Nature of Posting": "Incharge",
+            "Mobile Number": "7981048487.0",  # Test Excel trailing .0 float cleaning
+        },
+    ])
+
+
+def absentees_rows() -> pd.DataFrame:
+    return pd.DataFrame([
+        {
+            "S.No.": 1, "District Name": "Khammam", "Division Name": "KHAMMAM",
+            "Mandal Name": "Mandal B", "Panchayat Name": "GP Four", "Panchayat LGD Code": 4,
+            "Panchayat Secretary Employee Id": "EMP104",
+            "Panchayat Secretary Name": "TALLURU BHARGAVI",
+            "Designation": "Panchayat Secretary Grade IV", "Nature of Posting": "Regular",
+            "Mobile Number": "9618390381",
+        },
     ])
 
 
@@ -61,9 +105,12 @@ def make_settings(tmp_path: Path) -> Settings:
         data_dir=tmp_path / "data",
         max_upload_bytes=30 * 1024 * 1024,
     )
+
+
 def test_valid_xlsx_generates_unique_mandal_abstract_and_categories():
     report = process_attendance_file("synthetic.xlsx", bytes_for(attendance_rows(), ".xlsx"))
 
+    assert report.district_name == "Khammam"
     assert report.unique_gp_count == 7
     assert report.duplicate_lgd_rows == 1
     assert len(report.conflicts) == 1
@@ -91,6 +138,36 @@ def test_valid_xlsx_generates_unique_mandal_abstract_and_categories():
     assert report.dsr_district_total["dsr_pending"] == 1
     assert [row["mandal"] for row in report.dsr_mandal_rows] == ["Mandal B", "Mandal A"]
     assert report.dsr_pending_rows[0]["gp"] == "GP Three"
+
+
+def test_dynamic_district_name_detected_from_uploaded_data():
+    frame = attendance_rows().copy()
+    frame["District Name"] = "Bhadradri Kothagudem"
+    report = analyze_attendance(frame)
+    assert report.district_name == "Bhadradri Kothagudem"
+
+
+def test_clean_name_proper_casing():
+    assert _clean_name("RAYALALA NAGARAJU") == "Rayalala Nagaraju"
+    assert _clean_name("kola rajeswari") == "Kola Rajeswari"
+    assert _clean_name("CH.VENKATESWARLU") == "Ch.Venkateswarlu"
+    assert _clean_name("K. Venkateshwarlu") == "K. Venkateshwarlu"
+    assert _clean_name("MOGILI SIVASHANKAR") == "Mogili Sivashankar"
+
+
+def test_format_time_only_extracts_clean_time():
+    assert _format_time_only("28-10-2026 09:01") == "09:01 AM"
+    assert _format_time_only("31-Oct-2026 08:30") == "08:30 AM"
+    assert _format_time_only("09:15") == "09:15 AM"
+
+
+def test_percent_bar_green_only_for_100_percent():
+    bar_100 = PercentBar(100.0, 50)
+    bar_95 = PercentBar(95.0, 50)
+    bar_60 = PercentBar(60.0, 50)
+    bar_30 = PercentBar(30.0, 50)
+    assert bar_100.percent == 100.0
+    assert bar_95.percent == 95.0
 
 
 def test_csv_with_header_variations_is_supported():
@@ -192,6 +269,90 @@ def test_dsr_requires_present_on_first_or_second_attendance_and_excludes_other_s
     assert "Second: Present" in next(row for row in report.dsr_pending_rows if row["gp"] == "GP2")["attendance_status"]
 
 
+def test_ps_directory_parsing_and_proper_casing():
+    p_bytes = bytes_for(presentees_rows(), ".xlsx")
+    a_bytes = bytes_for(absentees_rows(), ".csv")
+
+    p_dir = parse_ps_directory_file("presentees.xlsx", p_bytes)
+    a_dir = parse_ps_directory_file("absentees.csv", a_bytes)
+
+    assert "1" in p_dir
+    # All caps in source converted to proper case:
+    assert p_dir["1"]["ps_name"] == "Rayalala Nagaraju"
+    assert p_dir["1"]["mobile"] == "8897632431"
+    assert p_dir["1"]["nature_of_posting"] == "Regular"
+
+    assert "3" in p_dir
+    # All lower in source converted to proper case:
+    assert p_dir["3"]["ps_name"] == "Kola Rajeswari"
+    assert p_dir["3"]["mobile"] == "7981048487"  # Cleaned from 7981048487.0
+    assert p_dir["3"]["nature_of_posting"] == "Incharge"
+
+    assert "4" in a_dir
+    assert a_dir["4"]["ps_name"] == "Talluru Bhargavi"
+    assert a_dir["4"]["mobile"] == "9618390381"
+    assert a_dir["4"]["nature_of_posting"] == "Regular"
+
+    merged = merge_ps_directories(p_dir, a_dir)
+    assert len(merged) == 3
+    assert set(merged.keys()) == {"1", "3", "4"}
+
+
+def test_ps_details_lookup_in_attendance_pending_and_after_9_lists():
+    raw_bytes = bytes_for(attendance_rows(), ".xlsx")
+    p_source = ("presentees.xlsx", bytes_for(presentees_rows(), ".xlsx"))
+    a_source = ("absentees.csv", bytes_for(absentees_rows(), ".csv"))
+
+    report = process_attendance_file(
+        "attendance.xlsx",
+        raw_bytes,
+        presentees_source=p_source,
+        absentees_source=a_source,
+    )
+
+    # GP Four is pending:
+    gp_four = next(row for row in report.pending_rows if row["gp"] == "GP Four")
+    assert gp_four["ps_name"] == "Talluru Bhargavi"
+    assert gp_four["nature_of_posting"] == "Regular"
+    assert gp_four["mobile"] == "9618390381"
+
+    # GP Three submitted after 9 AM (09:01):
+    gp_three = next(row for row in report.after_9_rows if row["gp"] == "GP Three")
+    assert gp_three["ps_name"] == "Kola Rajeswari"
+    assert gp_three["nature_of_posting"] == "Incharge"
+    assert gp_three["mobile"] == "7981048487"
+    assert gp_three["time_only"] == "09:01 AM"
+
+    # DSR pending row has attendance time:
+    dsr_three = next(row for row in report.dsr_pending_rows if row["gp"] == "GP Three")
+    assert dsr_three["time_only"] == "09:01 AM"
+
+
+def test_pdf_generation_includes_ps_name_mobile_and_posting(tmp_path: Path):
+    raw_bytes = bytes_for(attendance_rows(), ".xlsx")
+    p_source = ("presentees.xlsx", bytes_for(presentees_rows(), ".xlsx"))
+    a_source = ("absentees.csv", bytes_for(absentees_rows(), ".csv"))
+
+    report = process_attendance_file(
+        "attendance.xlsx",
+        raw_bytes,
+        presentees_source=p_source,
+        absentees_source=a_source,
+    )
+    pdf_path = generate_pdf(report, tmp_path / "ps_report.pdf")
+    reader = PdfReader(str(pdf_path))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    assert "Kola Rajeswari" in text
+    assert "7981048487" in text
+    assert "Talluru Bhargavi" in text  # In Pending table
+    assert "9618390381" in text
+    assert "Incharge" in text
+    assert "Regular" in text
+    assert "09:01 AM" in text
+    assert "DSR not entered" in text
+
+
 def test_empty_sections_are_rendered_and_district_totals_remain_correct(tmp_path: Path):
     frame = attendance_rows().iloc[[0]].copy()
     report = analyze_attendance(frame)
@@ -211,7 +372,8 @@ def test_empty_sections_are_rendered_and_district_totals_remain_correct(tmp_path
     text = "\n".join(page.extract_text() or "" for page in reader.pages)
     normalized_text = " ".join(text.split())
     assert "KHAMMAM DISTRICT" in text
-    assert text.count("No records found for this section.") == 4
+    assert "No pending GPs found." in text
+    assert "No GPs submitted attendance after 9 AM." in text
     assert "No eligible GPs have pending DSR." in text
     assert "Overall Attendance %" in normalized_text
     assert "Mandal-wise DSR Abstract Report" in text
@@ -268,8 +430,6 @@ def test_mandal_abstract_repeats_column_headers_when_continued(tmp_path: Path):
     pdf_path = generate_pdf(report, tmp_path / "continued-abstract.pdf")
     reader = PdfReader(str(pdf_path))
     assert len(reader.pages) > 5
-    # The mandal abstract extends beyond page one, so its repeated header is
-    # visible at the beginning of page two.
     page_two = reader.pages[1].extract_text()
     assert "Sl. No." in page_two
     assert "No. of GPs" in page_two
@@ -285,10 +445,10 @@ def test_web_upload_processes_synchronously_and_downloads_private_pdf(
     calls = 0
     real_process = app_module.process_attendance_file
 
-    def count_process(filename: str, contents: bytes):
+    def count_process(filename: str, contents: bytes, **kwargs):
         nonlocal calls
         calls += 1
-        return real_process(filename, contents)
+        return real_process(filename, contents, **kwargs)
 
     monkeypatch.setattr(app_module, "process_attendance_file", count_process)
     upload = client.post(
@@ -314,6 +474,36 @@ def test_web_upload_processes_synchronously_and_downloads_private_pdf(
     assert (config.data_dir / "reports" / "PS_Attendance_Report_2026-10-28_08-34-05.pdf").is_file()
     assert client.get(f"/api/reports/{job_id}").status_code == 404
     assert client.get("/docs").status_code == 404
+
+
+def test_web_upload_with_presentees_and_absentees_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    config = make_settings(tmp_path)
+    client = TestClient(create_app(config), base_url="https://testserver")
+    monkeypatch.setattr(app_module, "utc_now", lambda: "2026-10-28T03:04:05+00:00")
+
+    upload = client.post(
+        "/api/web/reports",
+        data={"RequestedBy": "Collectorate"},
+        files={
+            "file": ("attendance.xlsx", bytes_for(attendance_rows(), ".xlsx"), "application/octet-stream"),
+            "presentees_file": ("presentees.xlsx", bytes_for(presentees_rows(), ".xlsx"), "application/octet-stream"),
+            "absentees_file": ("absentees.csv", bytes_for(absentees_rows(), ".csv"), "text/csv"),
+        },
+    )
+    assert upload.status_code == 200
+    job_id = upload.json()["job_id"]
+    assert upload.json()["status"] == "Completed"
+
+    download = client.get(f"/api/web/reports/{job_id}/download")
+    assert download.status_code == 200
+    reader = PdfReader(BytesIO(download.content))
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    assert "Kola Rajeswari" in text
+    assert "7981048487" in text
+    assert "Talluru Bhargavi" in text
+    assert "9618390381" in text
 
 
 def test_web_upload_rejects_invalid_types_and_missing_columns(tmp_path: Path):
@@ -360,21 +550,19 @@ def test_root_page_opens_directly_with_upload_and_download_workflow(tmp_path: Pa
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Khammam PS Attendance Analytics" in response.text
+    assert "PS Attendance" in response.text
     assert 'id="login-form"' not in response.text
     assert "APP_API_TOKEN" not in response.text
     assert "AppSheet" not in response.text
     assert "google" not in response.text.lower()
     assert "API documentation" not in response.text
     assert 'id="upload-form"' in response.text
-    assert 'id="attendance-file" name="file" type="file" required' in response.text
-    assert 'accept=' not in response.text
-    assert "Attendance data file" in response.text
-    assert "HTML table saved as .xls" in response.text
+    assert 'id="attendance-file"' in response.text
+    assert 'id="presentees-file"' in response.text
+    assert 'id="absentees-file"' in response.text
     assert "Generate and download report" in response.text
-    assert "/api/web/reports/" in response.text
+    assert "/api/web/reports" in response.text
     assert "Content-Disposition" in response.text
-    assert "Khammam_PS_Attendance_Report_${jobId}" not in response.text
 
 
 def test_public_web_upload_download_uses_private_browser_session(

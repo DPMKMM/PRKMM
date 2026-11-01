@@ -5,16 +5,24 @@ A FastAPI web application for uploading Gram Panchayat attendance files and down
 ## Features
 
 - Accepts .xls, .xlsx, .csv, and HTML tables saved as .xls.
+- Self-contained LGD discovery: extracts unique Panchayat LGD codes and Mandals directly from the uploaded RAW data file.
+- Look up Panchayat Secretary details (PS Name, Mobile Number, Nature of Posting, Employee ID, Designation) from uploaded Presentees & Absentees files using Panchayat LGD codes.
+- **Attendance Pending List** includes Panchayat Secretary Name, Nature of Posting (Regular / Incharge), and Mobile Number to call directly for remarks.
+- **GPs that Submitted Attendance After 9 AM** includes Panchayat Secretary Name, Nature of Posting, Mobile Number, and Attendance Timestamp.
 - Deduplicates Gram Panchayat records by Panchayat LGD and flags conflicting names.
 - Shows both submitted-attendance percentage and attendance-before-9-AM percentage in the Mandal abstract.
 - Builds a DSR abstract using GPs where `First Attendence Status` or `Second Attendence Status` is `Present`.
 - Counts DSR submissions only for eligible present PSs; Leave, Meeting, Training, and other statuses are excluded.
 - Sorts the DSR abstract by DSR-pending GP count in ascending order.
 - Places the DSR-pending GP list immediately after the attendance-pending list.
-- Downloads the PDF automatically as PS_Attendance_Report_YYYY-MM-DD_HH-MM-SS.pdf.
+- Downloads the PDF automatically as `PS_Attendance_Report_YYYY-MM-DD_HH-MM-SS.pdf`.
 - Keeps each report download private to the browser session that uploaded it.
 
-The uploaded source must include `First Attendence Status`, `Second Attendence Status`, `DSR Entry Status`, and the existing Panchayat LGD, Mandal Name, Panchayat Name, and attendance timestamp fields. Column names are matched case-insensitively and common DSR status/date aliases are accepted. If no DSR field can be detected, the upload returns a validation error instead of producing misleading DSR totals.
+## File Uploads
+
+1. **Attendance & DSR Raw Data File (Required)**: Contains `Panchayat LGD`, `Mandal Name`, `Panchayat Name`, `First Attendence Status`, `First Attendence Datetime`, `Second Attendence Status`, and `DSR Entry Status`.
+2. **Presentees PS Details File (Recommended)**: Contains `Panchayat LGD Code`, `Panchayat Secretary Name`, `Nature of Posting`, `Mobile Number`, etc., for secretaries who marked attendance.
+3. **Absentees PS Details File (Optional)**: Contains details for absent secretaries. Optional if all secretaries marked attendance.
 
 ## Run locally on Windows
 
@@ -42,7 +50,7 @@ uvicorn app:app --reload --port 8080 --env-file .env
 
 Open http://127.0.0.1:8080/ and upload an attendance file. The PDF downloads when report generation completes. /health provides the service health check; API documentation routes are disabled.
 
-Jobs are stored in data/attendance_jobs.sqlite3; generated reports are stored in data/reports/. Set DATA_DIR in .env to move this local webserver data.
+Jobs are stored in `data/attendance_jobs.sqlite3`; generated reports are stored in `data/reports/`. Set `DATA_DIR` in `.env` to move this local webserver data.
 
 ## Test
 
@@ -63,14 +71,14 @@ docker run --rm -p 8080:8080 -e WEB_SESSION_SECRET=replace-with-a-random-secret-
 
 ## Deploy to Render
 
-The repository includes a render.yaml Blueprint for the kmmdsr web service on the Free plan. For exact deployment details and storage limits, see README_Render.md.
+The repository includes a `render.yaml` Blueprint for the `kmmdsr` web service on the Free plan. For exact deployment details and storage limits, see `README_Render.md`.
 
 Render Free uses ephemeral local storage. Reports and SQLite job history can be removed on restart, redeploy, or spin-down. Download reports and save copies. For durable server-side storage, attach an appropriate persistent storage solution and review its current cost before enabling it.
 
 ## Files
 
-- app.py — browser upload, report job handling, session cookies, and health endpoint.
-- report_generator.py — spreadsheet parsing, attendance analytics, and PDF generation.
-- integrations.py — local SQLite and filesystem storage only.
-- tests/ — synthetic-data processing, PDF, and web upload tests.
-- Dockerfile, render.yaml, .env.example — container, Render, and runtime configuration.
+- `app.py` — browser upload UI (3 file inputs), report job handling, HMAC session cookies, and health endpoint.
+- `report_generator.py` — spreadsheet parsing, LGD-based PS directory lookup, attendance analytics, and PDF generation.
+- `integrations.py` — local SQLite and filesystem storage only.
+- `tests/` — synthetic-data processing, PS directory lookup, PDF, and web upload tests.
+- `Dockerfile`, `render.yaml`, `.env.example` — container, Render, and runtime configuration.

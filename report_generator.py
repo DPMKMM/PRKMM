@@ -58,6 +58,9 @@ REQUIRED_COLUMNS = {
 }
 
 OPTIONAL_COLUMN_ALIASES = {
+    "District Name": {
+        "districtname", "district", "district_name", "distname", "dist",
+    },
     "DSR Status": {
         "dsr", "dsrstatus", "dsrsubmitted", "dsrsubmissionstatus", "dsrsubmittedstatus",
         "dsrentrystatus", "dsrreportstatus", "dsrreportentered", "dsrentered",
@@ -70,6 +73,62 @@ OPTIONAL_COLUMN_ALIASES = {
         "dsrreportdate", "dsrreportdatetime", "dsrentereddate", "dsrentereddatetime",
         "dailystatusreportdate", "dailystatusreportdatetime",
     },
+    "Panchayat Secretary Name": {
+        "panchayatsecretaryname", "secretaryname", "psname", "panchayatsecretary",
+        "secname", "employeename", "name", "nameofps", "nameofpanchayatsecretary",
+    },
+    "Mobile Number": {
+        "mobilenumber", "mobile", "phonenumber", "phone", "contactnumber",
+        "contactno", "cellnumber", "cell", "mobileno", "phoneno", "contact",
+    },
+    "Nature of Posting": {
+        "natureofposting", "natureofpost", "postingnature", "natureofpostings",
+        "regularorinchage", "regularorincharge", "regularincharge", "posting",
+        "postnature", "nature", "typeofposting",
+    },
+    "Panchayat Secretary Employee Id": {
+        "panchayatsecretaryemployeeid", "psemployeeid", "secretaryemployeeid",
+        "employeeid", "empid", "psempid",
+    },
+    "Designation": {
+        "designation", "designationname", "post", "role",
+    },
+}
+
+PS_DIRECTORY_COLUMN_ALIASES = {
+    "Panchayat LGD Code": {
+        "panchayatlgdcode", "panchayatlgd", "lgdcode", "lgd", "gplgdcode", "gplgd",
+        "panchayatcode", "gpcode", "panchayatlgdno",
+    },
+    "Panchayat Secretary Name": {
+        "panchayatsecretaryname", "secretaryname", "psname", "panchayatsecretary",
+        "secname", "employeename", "name", "nameofps", "nameofpanchayatsecretary",
+    },
+    "Mobile Number": {
+        "mobilenumber", "mobile", "phonenumber", "phone", "contactnumber",
+        "contactno", "cellnumber", "cell", "mobileno", "phoneno", "contact",
+    },
+    "Nature of Posting": {
+        "natureofposting", "natureofpost", "postingnature", "natureofpostings",
+        "regularorinchage", "regularorincharge", "regularincharge", "posting",
+        "postnature", "nature", "typeofposting",
+    },
+    "Panchayat Secretary Employee Id": {
+        "panchayatsecretaryemployeeid", "psemployeeid", "secretaryemployeeid",
+        "employeeid", "empid", "psempid",
+    },
+    "Designation": {
+        "designation", "designationname", "post", "role",
+    },
+    "Mandal Name": {
+        "mandalname", "mandal",
+    },
+    "Panchayat Name": {
+        "panchayatname", "grampanchayat", "grampanchayatname", "gpname", "panchayat",
+    },
+    "District Name": {
+        "districtname", "district", "district_name", "distname", "dist",
+    },
 }
 
 
@@ -79,6 +138,7 @@ class InputValidationError(ValueError):
 
 @dataclass
 class ReportData:
+    district_name: str
     report_date: date
     source_row_count: int
     unique_gp_count: int
@@ -132,6 +192,171 @@ def _canonicalize_columns(frame: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]
             rename[column] = canonical
             found.add(canonical)
     return frame.rename(columns=rename), [name for name in REQUIRED_COLUMNS if name not in found]
+
+
+def _canonicalize_ps_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    frame = frame.loc[:, ~frame.columns.duplicated()].copy()
+    aliases = {
+        alias: canonical
+        for canonical, names in PS_DIRECTORY_COLUMN_ALIASES.items()
+        for alias in names
+    }
+    rename: dict[Any, str] = {}
+    found: set[str] = set()
+    for column in frame.columns:
+        canonical = aliases.get(normalize_column_name(column))
+        if canonical and canonical not in found:
+            rename[column] = canonical
+            found.add(canonical)
+    return frame.rename(columns=rename)
+
+
+def _clean_string(value: Any) -> str:
+    if pd.isna(value):
+        return ""
+    return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def _clean_name(value: Any) -> str:
+    """Format names in proper Title Case while respecting initials, abbreviations, and punctuation."""
+    cleaned = _clean_string(value)
+    if not cleaned or cleaned.lower() in {"nan", "none", "null", "na", "-", "."}:
+        return ""
+    # Capitalize every contiguous sequence of letters (e.g. MALLARAPU -> Mallarapu, (INCHARGE) -> (Incharge))
+    return re.sub(r"[A-Za-z]+", lambda m: m.group(0).capitalize(), cleaned)
+
+
+def _clean_lgd(value: Any) -> str:
+    if pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    # Excel numeric cells are often represented as e.g. "12345.0".
+    if re.fullmatch(r"\d+\.0+", text):
+        return text.split(".", 1)[0]
+    return text
+
+
+def _clean_mobile(value: Any) -> str:
+    if pd.isna(value):
+        return ""
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null", "0", "0.0", "na", "-", "."}:
+        return ""
+    # Strip trailing decimal from Excel float representation e.g. "9876543210.0"
+    if re.fullmatch(r"\d+\.0+", text):
+        text = text.split(".", 1)[0]
+    elif isinstance(value, float) and value.is_integer():
+        text = str(int(value))
+    cleaned = re.sub(r"[^\d+]", "", text)
+    return cleaned or text
+
+
+def parse_ps_directory_file(filename: str, raw_bytes: bytes) -> dict[str, dict[str, str]]:
+    """Parse an Excel, CSV, or HTML table containing PS details (Presentees / Absentees).
+    
+    Extracts mapping of Panchayat LGD -> {ps_name, mobile, nature_of_posting, emp_id, designation}.
+    """
+    if not raw_bytes:
+        return {}
+    extension = Path(filename).suffix.lower()
+    prefix = raw_bytes[:8192].lstrip().lower()
+    looks_html = (
+        prefix.startswith(b"<!doctype html")
+        or prefix.startswith(b"<html")
+        or (b"<table" in prefix and (b"<tr" in prefix or b"<th" in prefix))
+    )
+
+    frames: list[pd.DataFrame] = []
+    if looks_html:
+        try:
+            tables = pd.read_html(io.BytesIO(raw_bytes))
+            frames.extend(tables)
+        except Exception:
+            pass
+    elif extension == ".csv":
+        for enc in ("utf-8-sig", "cp1252", "latin1"):
+            try:
+                df = pd.read_csv(io.BytesIO(raw_bytes), sep=None, engine="python", encoding=enc, keep_default_na=False)
+                frames.append(df)
+                break
+            except Exception:
+                continue
+    else:  # .xls / .xlsx
+        try:
+            sheets = pd.read_excel(io.BytesIO(raw_bytes), sheet_name=None)
+            if isinstance(sheets, dict):
+                frames.extend(sheets.values())
+            elif isinstance(sheets, pd.DataFrame):
+                frames.append(sheets)
+        except Exception:
+            try:
+                tables = pd.read_html(io.BytesIO(raw_bytes))
+                frames.extend(tables)
+            except Exception:
+                pass
+
+    directory: dict[str, dict[str, str]] = {}
+    for candidate in frames:
+        if candidate is None or candidate.empty:
+            continue
+        frame = candidate.copy()
+        frame.columns = [str(col).replace("\n", " ").strip() for col in frame.columns]
+        standardized = _canonicalize_ps_columns(frame)
+        if "Panchayat LGD Code" not in standardized.columns:
+            for row_idx in range(min(len(frame), 15)):
+                candidate_sub = frame.iloc[row_idx + 1:].copy()
+                candidate_sub.columns = [str(val).replace("\n", " ").strip() for val in frame.iloc[row_idx].tolist()]
+                test_std = _canonicalize_ps_columns(candidate_sub)
+                if "Panchayat LGD Code" in test_std.columns:
+                    standardized = test_std
+                    break
+
+        if "Panchayat LGD Code" not in standardized.columns:
+            continue
+
+        for _, row in standardized.iterrows():
+            lgd = _clean_lgd(row.get("Panchayat LGD Code"))
+            if not lgd:
+                continue
+            name = _clean_name(row.get("Panchayat Secretary Name", ""))
+            mobile = _clean_mobile(row.get("Mobile Number", ""))
+            posting = _clean_name(row.get("Nature of Posting", ""))
+            emp_id = _clean_string(row.get("Panchayat Secretary Employee Id", ""))
+            designation = _clean_name(row.get("Designation", ""))
+
+            existing = directory.get(lgd, {})
+            directory[lgd] = {
+                "ps_name": name or existing.get("ps_name", ""),
+                "mobile": mobile or existing.get("mobile", ""),
+                "nature_of_posting": posting or existing.get("nature_of_posting", ""),
+                "emp_id": emp_id or existing.get("emp_id", ""),
+                "designation": designation or existing.get("designation", ""),
+            }
+
+    return directory
+
+
+def merge_ps_directories(*directories: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+    """Merge multiple PS directories (e.g. Presentees and Absentees), prioritizing non-empty values."""
+    merged: dict[str, dict[str, str]] = {}
+    for d in directories:
+        if not d:
+            continue
+        for lgd, info in d.items():
+            if lgd not in merged:
+                merged[lgd] = dict(info)
+            else:
+                existing = merged[lgd]
+                merged[lgd] = {
+                    "ps_name": info.get("ps_name") or existing.get("ps_name", ""),
+                    "mobile": info.get("mobile") or existing.get("mobile", ""),
+                    "nature_of_posting": info.get("nature_of_posting") or existing.get("nature_of_posting", ""),
+                    "emp_id": info.get("emp_id") or existing.get("emp_id", ""),
+                    "designation": info.get("designation") or existing.get("designation", ""),
+                }
+    return merged
 
 
 def _read_html_table(raw: bytes) -> pd.DataFrame:
@@ -207,24 +432,6 @@ def read_source_file(filename: str, raw_bytes: bytes) -> pd.DataFrame:
     return frame
 
 
-def _clean_string(value: Any) -> str:
-    if pd.isna(value):
-        return ""
-    return re.sub(r"\s+", " ", str(value)).strip()
-
-
-def _clean_lgd(value: Any) -> str:
-    if pd.isna(value):
-        return ""
-    text = str(value).strip()
-    if not text:
-        return ""
-    # Excel numeric cells are often represented as e.g. "12345.0".
-    if re.fullmatch(r"\d+\.0+", text):
-        return text.split(".", 1)[0]
-    return text
-
-
 def _is_present_status(value: Any) -> bool:
     normalized = normalize_column_name(_clean_string(value))
     return bool(normalized) and normalized.startswith("present") and "notpresent" not in normalized
@@ -273,6 +480,35 @@ def _format_timestamp(value: Any) -> str:
         return _clean_string(value)
 
 
+def _format_time_only(value: Any) -> str:
+    """Format timestamp extracting strictly only the time e.g. '09:15 AM'."""
+    if pd.isna(value) or value == "":
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%I:%M %p")
+    if isinstance(value, time):
+        return value.strftime("%I:%M %p")
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        stamp = pd.Timestamp(value)
+        return stamp.strftime("%I:%M %p")
+    except (TypeError, ValueError, OverflowError):
+        pass
+    match = re.search(r"(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)", text)
+    if match:
+        raw_time = match.group(1).strip()
+        try:
+            parsed_time = pd.to_datetime(raw_time, errors="coerce")
+            if not pd.isna(parsed_time):
+                return parsed_time.strftime("%I:%M %p")
+        except Exception:
+            pass
+        return raw_time
+    return text
+
+
 def _report_date(filename: str, timestamps: pd.Series) -> date:
     valid = timestamps.dropna()
     if not valid.empty:
@@ -289,7 +525,11 @@ def _report_date(filename: str, timestamps: pd.Series) -> date:
     return date.today()
 
 
-def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -> ReportData:
+def analyze_attendance(
+    frame: pd.DataFrame,
+    filename: str = "attendance.xlsx",
+    ps_directory: dict[str, dict[str, str]] | None = None,
+) -> ReportData:
     """Validate and aggregate one unique record per nonblank Panchayat LGD."""
     frame, missing = _canonicalize_columns(frame.copy())
     if missing:
@@ -300,6 +540,16 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
             "A DSR submission column was not found. Include a DSR status or submission date/time "
             "column (for example, DSR Entry Status or DSR Date)."
         )
+
+    # Detect district name dynamically from the uploaded data
+    district_name = "Khammam"
+    if "District Name" in frame.columns:
+        dist_series = frame["District Name"].dropna().map(_clean_string)
+        dist_series = dist_series[dist_series != ""]
+        if not dist_series.empty:
+            detected_dist = dist_series.mode().iloc[0]
+            if detected_dist:
+                district_name = _clean_name(detected_dist)
 
     frame["Panchayat LGD"] = frame["Panchayat LGD"].map(_clean_lgd)
     frame["Mandal Name"] = frame["Mandal Name"].map(_clean_string)
@@ -317,6 +567,8 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
     unique_rows: list[dict[str, Any]] = []
     conflicts: list[dict[str, Any]] = []
     duplicate_count = 0
+    directory = ps_directory or {}
+
     for lgd, group in valid.groupby("Panchayat LGD", sort=False, dropna=False):
         duplicate_count += max(0, len(group) - 1)
         def distinct_names(column: str) -> list[str]:
@@ -353,6 +605,14 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
                 ("First", first_attendance), ("Second", second_attendance),
             ) if value
         ) or "No attendance status"
+
+        ps_info = directory.get(str(lgd), {})
+        ps_name = _clean_name(ps_info.get("ps_name", "")) or _clean_name(chosen.get("Panchayat Secretary Name", ""))
+        mobile = ps_info.get("mobile", "") or _clean_mobile(chosen.get("Mobile Number", ""))
+        nature_of_posting = _clean_name(ps_info.get("nature_of_posting", "")) or _clean_name(chosen.get("Nature of Posting", ""))
+        emp_id = _clean_string(ps_info.get("emp_id", "")) or _clean_string(chosen.get("Panchayat Secretary Employee Id", ""))
+        designation = _clean_name(ps_info.get("designation", "")) or _clean_name(chosen.get("Designation", ""))
+
         unique_rows.append({
             "lgd": str(lgd),
             "mandal": mandals[0] if mandals else "(Unspecified)",
@@ -365,6 +625,11 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
             "dsr_eligible": present,
             "dsr_entered": present and dsr_entered,
             "dsr_attendance_status": attendance_status,
+            "ps_name": ps_name,
+            "mobile": mobile,
+            "nature_of_posting": nature_of_posting,
+            "emp_id": emp_id,
+            "designation": designation,
         })
 
     records = pd.DataFrame(unique_rows)
@@ -433,7 +698,9 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
             "dsr_pct": dsr_entered / present_ps * 100 if present_ps else 0.0,
             "dsr_pending": int((group["dsr_eligible"] & ~group["dsr_entered"]).sum()),
         })
-    dsr_mandal_rows.sort(key=lambda item: (item["dsr_pending"], item["mandal"].casefold()))
+    dsr_mandal_rows.sort(
+        key=lambda item: (item["dsr_pct"], -item["dsr_pending"], item["mandal"].casefold())
+    )
     for index, item in enumerate(dsr_mandal_rows, start=1):
         item["serial"] = index
 
@@ -452,10 +719,17 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
         return [
             {
                 "serial": index,
+                "lgd": row.lgd,
                 "mandal": row.mandal,
                 "gp": row.gp,
                 "status": row.status,
                 "timestamp": row.timestamp_text,
+                "time_only": _format_time_only(row.timestamp),
+                "ps_name": _clean_name(row.ps_name),
+                "mobile": row.mobile,
+                "nature_of_posting": row.nature_of_posting,
+                "emp_id": row.emp_id,
+                "designation": row.designation,
             }
             for index, row in enumerate(selected.itertuples(index=False), start=1)
         ]
@@ -471,16 +745,25 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
     dsr_pending_rows = [
         {
             "serial": index,
+            "lgd": row.lgd,
             "mandal": row.mandal,
             "gp": row.gp,
             "attendance_status": row.dsr_attendance_status,
             "dsr_status": "DSR not entered",
+            "timestamp": row.timestamp_text,
+            "time_only": _format_time_only(row.timestamp),
+            "ps_name": _clean_name(row.ps_name),
+            "mobile": row.mobile,
+            "nature_of_posting": row.nature_of_posting,
+            "emp_id": row.emp_id,
+            "designation": row.designation,
         }
         for index, row in enumerate(dsr_pending_records.itertuples(index=False), start=1)
     ]
     # Use all available recorded dates to infer the report date.
     report_date = _report_date(filename, valid["_timestamp"])
     return ReportData(
+        district_name=district_name,
         report_date=report_date,
         source_row_count=len(frame),
         unique_gp_count=district_gps,
@@ -499,9 +782,30 @@ def analyze_attendance(frame: pd.DataFrame, filename: str = "attendance.xlsx") -
     )
 
 
-def process_attendance_file(filename: str, raw_bytes: bytes) -> ReportData:
-    """Read and analyze an uploaded file."""
-    return analyze_attendance(read_source_file(filename, raw_bytes), filename)
+def process_attendance_file(
+    filename: str,
+    raw_bytes: bytes,
+    presentees_source: tuple[str, bytes] | None = None,
+    absentees_source: tuple[str, bytes] | None = None,
+    ps_directory: dict[str, dict[str, str]] | None = None,
+) -> ReportData:
+    """Read and analyze an uploaded file, merging optional Presentees/Absentees PS details."""
+    sources: list[tuple[str, bytes]] = []
+    if presentees_source and presentees_source[1]:
+        sources.append(presentees_source)
+    if absentees_source and absentees_source[1]:
+        sources.append(absentees_source)
+
+    parsed_dir: dict[str, dict[str, str]] = {}
+    for src_name, src_bytes in sources:
+        parsed_dir = merge_ps_directories(parsed_dir, parse_ps_directory_file(src_name, src_bytes))
+
+    combined_dir = merge_ps_directories(parsed_dir, ps_directory or {})
+    return analyze_attendance(
+        read_source_file(filename, raw_bytes),
+        filename,
+        ps_directory=combined_dir,
+    )
 
 
 class PercentBar(Flowable):
@@ -527,7 +831,15 @@ class PercentBar(Flowable):
         self.canv.roundRect(0, y, self.width, height, 2, fill=1, stroke=0)
         fill_width = min(self.width, self.width * self.percent / 100)
         if fill_width > 0:
-            color = "#2E8B57" if self.percent >= 75 else "#E0A11A" if self.percent >= 50 else "#D9534F"
+            # Green ONLY if attendance is 100.0%; distinct amber/orange/red for < 100%
+            if round(self.percent, 2) >= 100.0:
+                color = "#28A745"  # Green ONLY for 100%
+            elif self.percent >= 75.0:
+                color = "#E69500"  # Rich Amber for 75% - 99.99% (unmistakably not green)
+            elif self.percent >= 50.0:
+                color = "#E65100"  # Orange for 50% - 74.99%
+            else:
+                color = "#D9534F"  # Red for < 50%
             self.canv.setFillColor(HexColor(color))
             self.canv.roundRect(0, y, fill_width, height, 2, fill=1, stroke=0)
         self.canv.restoreState()
@@ -593,7 +905,11 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
                     formatted.append(value)
                 else:
                     cell_style = styles["CellLeft"] if column_index in left_columns else styles["CellCenter"]
-                    formatted.append(Paragraph(safe(value), cell_style))
+                    text_val = "" if value is None else str(value)
+                    if "<font" in text_val or "<b>" in text_val or "<br/>" in text_val:
+                        formatted.append(Paragraph(text_val, cell_style))
+                    else:
+                        formatted.append(Paragraph(safe(text_val), cell_style))
             data.append(formatted)
         table = Table(data, colWidths=widths, repeatRows=1, hAlign="LEFT", splitByRow=1)
         commands: list[tuple[Any, ...]] = [
@@ -624,13 +940,13 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
         canvas.line(margin, 10 * mm, width - margin, 10 * mm)
         canvas.setFont("Helvetica", 7.5)
         canvas.setFillColor(HexColor("#555555"))
-        canvas.drawString(margin, 6 * mm, f"Khammam District | PS Attendance Report | {report.report_date:%d-%m-%Y}")
+        canvas.drawString(margin, 6 * mm, f"{report.district_name.title()} District | PS Attendance Report | {report.report_date:%d-%m-%Y}")
         canvas.drawRightString(width - margin, 6 * mm, f"Page {document.page}")
         canvas.restoreState()
 
     story: list[Any] = []
     story.extend([
-        Paragraph("KHAMMAM DISTRICT", styles["ReportTitle"]),
+        Paragraph(f"{report.district_name.upper()} DISTRICT", styles["ReportTitle"]),
         Paragraph("PANCHAYAT SECRETARY ATTENDANCE REPORT", styles["ReportTitle"]),
         Paragraph(f"Report Date: {report.report_date:%d-%m-%Y} | Unique GPs: {report.unique_gp_count:,}", styles["ReportSubtitle"]),
         Paragraph("1. Mandal-wise Attendance Abstract", styles["SectionTitle"]),
@@ -648,18 +964,22 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
     widths = [width * scale for width in widths]
     abstract_rows: list[list[Any]] = []
     for item in report.mandal_rows:
+        pending_val = item["pending"]
+        pending_display = f'<font color="#C00000"><b>{pending_val}</b></font>' if pending_val > 0 else str(pending_val)
         abstract_rows.append([
             item["serial"], item["mandal"], item["total_gps"], item["before_9"],
             PercentBar(item["before_9_pct"], widths[4] - 5),
             PercentBar(item["attendance_pct"], widths[5] - 5), item["on_leave"],
-            item["meeting_training"], item["pending"],
+            item["meeting_training"], pending_display,
         ])
     total = report.district_total
+    total_pending = total["pending"]
+    total_pending_display = f'<font color="#C00000"><b>{total_pending}</b></font>' if total_pending > 0 else str(total_pending)
     abstract_rows.append([
         "", "DISTRICT TOTAL", total["total_gps"], total["before_9"],
         PercentBar(total["before_9_pct"], widths[4] - 5),
         PercentBar(total["attendance_pct"], widths[5] - 5), total["on_leave"],
-        total["meeting_training"], total["pending"],
+        total["meeting_training"], total_pending_display,
     ])
     story.append(make_table(abstract_headers, abstract_rows, widths, left_columns=(1,), total_row=True))
     story.append(Spacer(1, 6))
@@ -690,41 +1010,55 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
         "No. of GPs DSR entered", "No. of GPs DSR pending", "% GPs DSR submitted",
     ]
     dsr_widths = [10 * mm, 38 * mm, 27 * mm, 27 * mm, 29 * mm, 27 * mm, available_width - 158 * mm]
-    dsr_rows: list[list[Any]] = [
-        [
+    dsr_rows: list[list[Any]] = []
+    for item in report.dsr_mandal_rows:
+        dsr_pending_display = f'<font color="#C00000"><b>{item["dsr_pending"]}</b></font>' if item["dsr_pending"] > 0 else str(item["dsr_pending"])
+        dsr_rows.append([
             item["serial"], item["mandal"], item["total_gps"], item["present_ps"],
-            item["dsr_entered"], item["dsr_pending"],
+            item["dsr_entered"], dsr_pending_display,
             PercentBar(item["dsr_pct"], dsr_widths[6] - 5),
-        ]
-        for item in report.dsr_mandal_rows
-    ]
+        ])
     dsr_total = report.dsr_district_total
+    total_dsr_pending_display = f'<font color="#C00000"><b>{dsr_total["dsr_pending"]}</b></font>' if dsr_total["dsr_pending"] > 0 else str(dsr_total["dsr_pending"])
     dsr_rows.append([
         "", "DISTRICT TOTAL", dsr_total["total_gps"], dsr_total["present_ps"],
-        dsr_total["dsr_entered"], dsr_total["dsr_pending"],
+        dsr_total["dsr_entered"], total_dsr_pending_display,
         PercentBar(dsr_total["dsr_pct"], dsr_widths[6] - 5),
     ])
     story.append(make_table(dsr_headers, dsr_rows, dsr_widths, left_columns=(1,), total_row=True))
 
-    def append_list_section(title: str, total_label: str, rows: list[dict[str, Any]]) -> None:
-        story.append(PageBreak())
-        story.append(Paragraph(title, styles["SectionTitle"]))
-        story.append(Paragraph(f"{total_label}: {len(rows):,}", styles["ReportSubtitle"]))
-        headers = ["Sl. No.", "Mandal", "Gram Panchayat", "Attendance Status", "Attendance Date & Time"]
-        list_widths = [12 * mm, 38 * mm, 45 * mm, 39 * mm, available_width - 134 * mm]
-        list_rows: list[list[Any]] = [
-            [item["serial"], item["mandal"], item["gp"], item["status"] or "Pending", item["timestamp"]]
-            for item in rows
+    # 3. ATTENDANCE PENDING LIST (with PS Name, Nature of Posting, Mobile Number)
+    story.append(PageBreak())
+    story.append(Paragraph("3. ATTENDANCE PENDING LIST", styles["SectionTitle"]))
+    story.append(Paragraph(f"Total pending GPs: {len(report.pending_rows):,}", styles["ReportSubtitle"]))
+    pending_headers = [
+        "Sl. No.", "Mandal", "Gram Panchayat",
+        "Panchayat Secretary Name", "Nature of\nPosting", "Mobile Number",
+    ]
+    pending_widths = [10 * mm, 28 * mm, 36 * mm, 44 * mm, 34 * mm, available_width - 152 * mm]
+    pending_table_rows: list[list[Any]] = [
+        [
+            item["serial"],
+            item["mandal"],
+            item["gp"],
+            _clean_name(item.get("ps_name")) or "-",
+            item.get("nature_of_posting") or "-",
+            item.get("mobile") or "-",
         ]
-        if not list_rows:
-            list_rows = [["-", "-", "No records found for this section.", "-", "-"]]
-        table = make_table(headers, list_rows, list_widths, left_columns=(1, 2, 3, 4))
-        if not rows:
-            table.setStyle(TableStyle([("SPAN", (2, 1), (4, 1)), ("ALIGN", (2, 1), (4, 1), "LEFT")]))
-        story.append(table)
+        for item in report.pending_rows
+    ]
+    if not pending_table_rows:
+        pending_table_rows = [["-", "-", "No pending GPs found.", "-", "-", "-"]]
+    pending_table = make_table(
+        pending_headers, pending_table_rows, pending_widths, left_columns=(1, 2, 3, 4),
+    )
+    if not report.pending_rows:
+        pending_table.setStyle(TableStyle([
+            ("SPAN", (2, 1), (-1, 1)), ("ALIGN", (2, 1), (-1, 1), "LEFT"),
+        ]))
+    story.append(pending_table)
 
-    append_list_section("3. ATTENDANCE PENDING LIST", "Total pending GPs", report.pending_rows)
-
+    # 4. DSR PENDING GPs LIST (with Attendance Time and 'DSR not entered' in RED)
     story.append(PageBreak())
     story.append(Paragraph("4. DSR PENDING GPs LIST", styles["SectionTitle"]))
     story.append(Paragraph(
@@ -732,60 +1066,140 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
         styles["ReportSubtitle"],
     ))
     dsr_pending_headers = [
-        "Sl. No.", "Mandal", "Gram Panchayat", "Attendance Status", "DSR Status",
+        "Sl. No.", "Mandal", "Gram Panchayat", "Attendance Status", "Attendance Time", "DSR Status",
     ]
-    dsr_pending_widths = [12 * mm, 37 * mm, 45 * mm, 62 * mm, available_width - 156 * mm]
-    dsr_pending_table_rows: list[list[Any]] = [
-        [
-            item["serial"], item["mandal"], item["gp"],
-            item["attendance_status"], item["dsr_status"],
-        ]
-        for item in report.dsr_pending_rows
-    ]
+    dsr_pending_widths = [10 * mm, 32 * mm, 38 * mm, 42 * mm, 32 * mm, available_width - 154 * mm]
+    dsr_pending_table_rows: list[list[Any]] = []
+    for item in report.dsr_pending_rows:
+        raw_time = item.get("time_only") or _format_time_only(item.get("timestamp")) or "-"
+        dsr_status_display = '<font color="#C00000"><b>DSR not entered</b></font>'
+        dsr_pending_table_rows.append([
+            item["serial"],
+            item["mandal"],
+            item["gp"],
+            item["attendance_status"],
+            raw_time,
+            dsr_status_display,
+        ])
     if not dsr_pending_table_rows:
-        dsr_pending_table_rows = [["-", "-", "No eligible GPs have pending DSR.", "-", "-"]]
+        dsr_pending_table_rows = [["-", "-", "No eligible GPs have pending DSR.", "-", "-", "-"]]
     dsr_pending_table = make_table(
         dsr_pending_headers, dsr_pending_table_rows, dsr_pending_widths,
-        left_columns=(1, 2, 3, 4),
+        left_columns=(1, 2, 3),
     )
     if not report.dsr_pending_rows:
         dsr_pending_table.setStyle(TableStyle([
-            ("SPAN", (2, 1), (4, 1)), ("ALIGN", (2, 1), (4, 1), "LEFT"),
+            ("SPAN", (2, 1), (-1, 1)), ("ALIGN", (2, 1), (-1, 1), "LEFT"),
         ]))
     story.append(dsr_pending_table)
 
-    append_list_section("5. PS ON LEAVE LIST", "Total PS on leave", report.leave_rows)
-    append_list_section(
+    def append_contact_list_section(title: str, total_label: str, rows: list[dict[str, Any]]) -> None:
+        story.append(PageBreak())
+        story.append(Paragraph(title, styles["SectionTitle"]))
+        story.append(Paragraph(f"{total_label}: {len(rows):,}", styles["ReportSubtitle"]))
+        headers = [
+            "Sl. No.", "Mandal", "Gram Panchayat",
+            "Panchayat Secretary Name", "Nature of\nPosting", "Mobile Number", "Status",
+        ]
+        col_widths = [
+            10 * mm, 26 * mm, 32 * mm, 40 * mm, 26 * mm, 28 * mm, available_width - 162 * mm,
+        ]
+        table_rows: list[list[Any]] = [
+            [
+                item["serial"],
+                item["mandal"],
+                item["gp"],
+                _clean_name(item.get("ps_name")) or "-",
+                item.get("nature_of_posting") or "-",
+                item.get("mobile") or "-",
+                item["status"] or "-",
+            ]
+            for item in rows
+        ]
+        if not table_rows:
+            table_rows = [["-", "-", "No records found for this section.", "-", "-", "-", "-"]]
+        table = make_table(headers, table_rows, col_widths, left_columns=(1, 2, 3, 4))
+        if not rows:
+            table.setStyle(TableStyle([("SPAN", (2, 1), (-1, 1)), ("ALIGN", (2, 1), (-1, 1), "LEFT")]))
+        story.append(table)
+
+    append_contact_list_section("5. PS ON LEAVE LIST", "Total PS on leave", report.leave_rows)
+    append_contact_list_section(
         "6. TRAINING / MEETING LIST", "Total training/meeting records", report.meeting_training_rows,
     )
-    append_list_section(
-        "7. GPs THAT SUBMITTED ATTENDANCE AFTER 9 AM", "Total GPs after 9 AM", report.after_9_rows,
+
+    # 7. GPs THAT SUBMITTED ATTENDANCE AFTER 9 AM (with PS Name, Nature of Posting, Mobile Number, Time in Red)
+    story.append(PageBreak())
+    story.append(Paragraph("7. GPs THAT SUBMITTED ATTENDANCE AFTER 9 AM", styles["SectionTitle"]))
+    story.append(Paragraph(f"Total GPs after 9 AM: {len(report.after_9_rows):,}", styles["ReportSubtitle"]))
+    after_9_headers = [
+        "Sl. No.", "Mandal", "Gram Panchayat",
+        "Panchayat Secretary Name", "Nature of\nPosting", "Mobile Number",
+        "Attendance\nTime", "Attendance\nStatus",
+    ]
+    after_9_widths = [
+        9 * mm, 24 * mm, 28 * mm, 36 * mm, 22 * mm, 25 * mm, 24 * mm, available_width - 168 * mm,
+    ]
+    after_9_table_rows: list[list[Any]] = []
+    for item in report.after_9_rows:
+        raw_time = item.get("time_only") or _format_time_only(item.get("timestamp")) or "-"
+        time_display = f'<font color="#C00000"><b>{raw_time}</b></font>' if raw_time != "-" else "-"
+        after_9_table_rows.append([
+            item["serial"],
+            item["mandal"],
+            item["gp"],
+            _clean_name(item.get("ps_name")) or "-",
+            item.get("nature_of_posting") or "-",
+            item.get("mobile") or "-",
+            time_display,
+            item["status"] or "Present",
+        ])
+    if not after_9_table_rows:
+        after_9_table_rows = [["-", "-", "No GPs submitted attendance after 9 AM.", "-", "-", "-", "-", "-"]]
+    after_9_table = make_table(
+        after_9_headers, after_9_table_rows, after_9_widths, left_columns=(1, 2, 3, 4),
     )
+    if not report.after_9_rows:
+        after_9_table.setStyle(TableStyle([
+            ("SPAN", (2, 1), (-1, 1)), ("ALIGN", (2, 1), (-1, 1), "LEFT"),
+        ]))
+    story.append(after_9_table)
 
     doc = SimpleDocTemplate(
         str(output), pagesize=A4, rightMargin=margin, leftMargin=margin,
         topMargin=13 * mm, bottomMargin=14 * mm,
-        title="Khammam District PS Attendance Report", author="Khammam District",
+        title=f"{report.district_name.title()} District PS Attendance Report",
+        author=f"{report.district_name.title()} District",
     )
     doc.build(story, onFirstPage=footer, onLaterPages=footer)
     return output
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Generate Khammam PS attendance PDF report")
+    parser = argparse.ArgumentParser(description="Generate PS attendance PDF report")
     parser.add_argument("input_file", help="Path to attendance raw-data file")
+    parser.add_argument("--presentees", default=None, help="Optional path to Presentees Excel/CSV file")
+    parser.add_argument("--absentees", default=None, help="Optional path to Absentees Excel/CSV file")
     parser.add_argument("--output", default=None, help="Optional output PDF path")
     args = parser.parse_args()
     source = Path(args.input_file)
+    presentees_source = (Path(args.presentees).name, Path(args.presentees).read_bytes()) if args.presentees else None
+    absentees_source = (Path(args.absentees).name, Path(args.absentees).read_bytes()) if args.absentees else None
     try:
-        report = process_attendance_file(source.name, source.read_bytes())
+        report = process_attendance_file(
+            source.name,
+            source.read_bytes(),
+            presentees_source=presentees_source,
+            absentees_source=absentees_source,
+        )
         destination = Path(args.output) if args.output else Path(
-            f"Khammam_PS_Attendance_Report_{report.report_date:%d-%b-%Y}.pdf"
+            f"{report.district_name.replace(' ', '_')}_PS_Attendance_Report_{report.report_date:%d-%b-%Y}.pdf"
         )
         generate_pdf(report, destination)
     except InputValidationError as exc:
         parser.error(str(exc))
     print(f"PDF report created: {destination}")
+    print(f"District: {report.district_name}")
     print(f"Unique GPs: {report.unique_gp_count:,}; duplicate LGD rows excluded: {report.duplicate_lgd_rows:,}")
     print(f"Totals: {report.totals}")
     return 0

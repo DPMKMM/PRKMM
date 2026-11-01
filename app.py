@@ -49,28 +49,35 @@ UPLOAD_PAGE_HTML = """<!doctype html>
   <style>
     :root { color-scheme: light; font-family: Inter, Segoe UI, Arial, sans-serif; }
     body { margin: 0; background: #f3f7f5; color: #15332b; }
-    main { max-width: 780px; margin: 6vh auto; padding: 0 20px; }
+    main { max-width: 820px; margin: 5vh auto; padding: 0 20px; }
     .card { background: white; border: 1px solid #d9e6df; border-radius: 18px;
       padding: clamp(24px, 5vw, 42px); box-shadow: 0 14px 40px #173b2b12; }
     .eyebrow { color: #247558; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; font-size: .8rem; }
-    h1 { margin: 12px 0; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.1; }
-    p { line-height: 1.6; color: #486158; }
-    label { display: block; margin: 18px 0 7px; font-weight: 650; }
+    h1 { margin: 12px 0 8px; font-size: clamp(1.8rem, 4.5vw, 2.6rem); line-height: 1.15; }
+    p { line-height: 1.6; color: #486158; margin-top: 0; }
+    .field-group { margin: 18px 0; }
+    label { display: block; margin: 0 0 6px; font-weight: 650; font-size: 0.95rem; }
+    .req { color: #c92a2a; }
+    .badge { font-size: 0.74rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-left: 6px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge-rec { background: #e3f5eb; color: #167451; }
+    .badge-opt { background: #fff3d6; color: #855c06; }
+    .hint { font-size: 0.82rem; color: #5a7369; margin-top: 5px; line-height: 1.45; }
     input[type="file"], input[type="text"] { width: 100%;
-      box-sizing: border-box; padding: 12px; border: 1px solid #bfd1c7;
-      border-radius: 9px; background: white; color: #15332b; }
+      box-sizing: border-box; padding: 11px 13px; border: 1px solid #bfd1c7;
+      border-radius: 9px; background: white; color: #15332b; font-size: 0.95rem; }
+    input[type="file"] { background: #fbfdfc; }
     button, a.button { display: inline-block; border: 0; border-radius: 10px;
-      background: #167451; color: white; padding: 12px 18px; font-weight: 700;
-      text-decoration: none; cursor: pointer; }
+      background: #167451; color: white; padding: 13px 22px; font-weight: 700;
+      font-size: 1rem; text-decoration: none; cursor: pointer; transition: background .15s; }
+    button:hover { background: #125e41; }
     button:disabled { opacity: .6; cursor: wait; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
-    a.secondary, button.secondary { background: #eaf3ee; color: #176247; }
-    .notice { margin: 20px 0; padding: 12px 14px; border-radius: 10px;
-      background: #fff5dc; color: #684f08; line-height: 1.5; }
-    .message { min-height: 1.5em; margin-top: 14px; color: #8b2635; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 24px; }
+    .notice { margin: 18px 0; padding: 12px 14px; border-radius: 10px;
+      background: #eef6f2; border-left: 4px solid #167451; color: #1b4938; line-height: 1.5; font-size: 0.88rem; }
+    .message { min-height: 1.5em; margin-top: 14px; color: #8b2635; font-weight: 600; }
     .message.success { color: #176247; }
-    .fine-print { border-top: 1px solid #e5eee9; margin-top: 24px; padding-top: 18px; font-size: .92rem; }
+    .fine-print { border-top: 1px solid #e5eee9; margin-top: 26px; padding-top: 18px; font-size: 0.88rem; color: #627b72; line-height: 1.55; }
   </style>
 </head>
 <body>
@@ -78,22 +85,44 @@ UPLOAD_PAGE_HTML = """<!doctype html>
     <section class="card">
       <div class="eyebrow">Khammam District · Telangana</div>
       <h1>PS Attendance Analytics</h1>
-      <p>Select the latest attendance and DSR Excel file. The service will create your formatted report and download the PDF.</p>
+      <p>Upload the latest Attendance &amp; DSR raw data file. You can also provide the Presentees and Absentees PS files to automatically map Panchayat Secretary names, contact numbers, and nature of posting (Regular / Incharge) based on Panchayat LGD codes.</p>
+      
       <div class="notice">
-        Reports and job history are stored on this webserver. If hosted on Render Free, local files can be cleared by a restart or redeploy, so download and save each report.
+        <strong>Data Mapping:</strong> The application automatically detects all Gram Panchayats and Mandals directly from your uploaded raw data file. When Presentees and Absentees files are supplied, each secretary's Name, Mobile Number, and Nature of Posting are dynamically looked up by LGD code.
       </div>
 
       <form id="upload-form">
-        <label for="attendance-file">Attendance data file</label>
-        <input id="attendance-file" name="file" type="file" required>
-        <label for="requested-by">Your name or office (optional)</label>
-        <input id="requested-by" name="RequestedBy" type="text" maxlength="320"
-          autocomplete="name" placeholder="Name or office">
-        <div class="actions"><button id="generate-button" type="submit">Generate and download report</button></div>
+        <div class="field-group">
+          <label for="attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
+          <input id="attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
+          <div class="hint">Contains District, Division, Mandal, Panchayat Name, Panchayat LGD, First &amp; Second Attendance, and DSR Status.</div>
+        </div>
+
+        <div class="field-group">
+          <label for="presentees-file">2. Presentees PS Details File <span class="badge badge-rec">Recommended</span></label>
+          <input id="presentees-file" name="presentees_file" type="file" accept=".xls,.xlsx,.csv">
+          <div class="hint">Excel/CSV export of present secretaries with Panchayat LGD Code, PS Name, Designation, Nature of Posting, and Mobile Number.</div>
+        </div>
+
+        <div class="field-group">
+          <label for="absentees-file">3. Absentees PS Details File <span class="badge badge-opt">Optional</span></label>
+          <input id="absentees-file" name="absentees_file" type="file" accept=".xls,.xlsx,.csv">
+          <div class="hint">Excel/CSV export of absent secretaries. Not required if all secretaries submitted attendance.</div>
+        </div>
+
+        <div class="field-group">
+          <label for="requested-by">Your name or office (optional)</label>
+          <input id="requested-by" name="RequestedBy" type="text" maxlength="320"
+            autocomplete="name" placeholder="E.g., DPO Khammam / Collectorate">
+        </div>
+
+        <div class="actions">
+          <button id="generate-button" type="submit">Generate and download report</button>
+        </div>
         <div id="report-message" class="message" role="status" aria-live="polite"></div>
       </form>
 
-      <p class="fine-print">Choose a file from your device. Supported report data: Excel (.xls, .xlsx), CSV, or an HTML table saved as .xls. The report downloads automatically when processing finishes.</p>
+      <p class="fine-print">Supported formats: Excel (.xls, .xlsx), CSV, or portal HTML tables exported with a .xls extension. The PDF report downloads automatically once analytics and formatting finish.</p>
     </section>
   </main>
   <script>
@@ -128,12 +157,24 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         const file = fileInput.files[0];
         if (!file) return;
         generateButton.disabled = true;
-        showMessage(reportMessage, 'Uploading and processing the attendance file…');
+        showMessage(reportMessage, 'Uploading and processing the attendance files…');
         try {
           const data = new FormData();
           data.append('file', file);
+          
+          const presenteesInput = document.getElementById('presentees-file');
+          if (presenteesInput && presenteesInput.files[0]) {
+            data.append('presentees_file', presenteesInput.files[0]);
+          }
+
+          const absenteesInput = document.getElementById('absentees-file');
+          if (absenteesInput && absenteesInput.files[0]) {
+            data.append('absentees_file', absenteesInput.files[0]);
+          }
+
           const requestedBy = document.getElementById('requested-by').value.trim();
           if (requestedBy) data.append('RequestedBy', requestedBy);
+
           let job = await apiJson('/api/web/reports', { method: 'POST', body: data });
           const jobId = job.job_id;
           if (!jobId) throw new Error('The service did not return a report job ID.');
@@ -161,7 +202,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           link.click();
           link.remove();
           setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-          showMessage(reportMessage, 'Report downloaded. You can upload another file.', true);
+          showMessage(reportMessage, 'Report downloaded successfully! You can upload another file.', true);
           uploadForm.reset();
         } catch (error) {
           showMessage(reportMessage, error.message || 'Report generation failed.');
@@ -200,6 +241,8 @@ class Settings:
             data_dir=Path(os.getenv("DATA_DIR", "./data")).resolve(),
             max_upload_bytes=max_bytes,
         )
+
+
 def _clean_filename(value: str | None) -> str:
     raw = (value or "attendance.xls").replace("\\", "/").split("/")[-1].strip()
     return raw or "attendance.xls"
@@ -276,8 +319,8 @@ def create_app(
     tracker = tracker or LocalJobTracker(config.data_dir / "attendance_jobs.sqlite3")
     api = FastAPI(
         title="Khammam PS Attendance Analytics",
-        version="3.0.0",
-        description="Upload attendance files and download formatted reports.",
+        version="3.1.0",
+        description="Upload attendance and PS details files and download formatted reports.",
         docs_url=None,
         redoc_url=None,
         openapi_url=None,
@@ -297,7 +340,8 @@ def create_app(
             raw_length = request.headers.get("content-length")
             if raw_length:
                 try:
-                    if int(raw_length) > config.max_upload_bytes + 1024 * 1024:
+                    # Allow up to 3 files plus multipart boundary overhead
+                    if int(raw_length) > (config.max_upload_bytes * 3) + 1024 * 1024:
                         return JSONResponse(status_code=413, content={"detail": "Multipart request is too large."})
                 except ValueError:
                     return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})
@@ -366,7 +410,12 @@ def create_app(
             requested_at=utc_now(),
         )
 
-    def _process_job(job_id: str, source: tuple[str, bytes]) -> JobRecord:
+    def _process_job(
+        job_id: str,
+        source: tuple[str, bytes],
+        presentees: tuple[str, bytes] | None = None,
+        absentees: tuple[str, bytes] | None = None,
+    ) -> JobRecord:
         current = tracker.get(job_id)
         if not current:
             raise FileNotFoundError("Report job was not found.")
@@ -380,7 +429,12 @@ def create_app(
 
         try:
             filename, raw_bytes = source
-            report = process_attendance_file(filename, raw_bytes)
+            report = process_attendance_file(
+                filename,
+                raw_bytes,
+                presentees_source=presentees,
+                absentees_source=absentees,
+            )
             download_filename = _make_report_filename(report.report_date, current.requested_at)
             with tempfile.TemporaryDirectory(prefix="khammam_attendance_") as directory:
                 output_path = Path(directory) / download_filename
@@ -428,6 +482,8 @@ def create_app(
     def create_web_report(
         request: Request,
         file: UploadFile = File(...),
+        presentees_file: UploadFile | None = File(default=None),
+        absentees_file: UploadFile | None = File(default=None),
         requested_by: str = Form(default="", alias="RequestedBy"),
     ) -> JSONResponse:
         if not config.session_secret:
@@ -435,10 +491,28 @@ def create_app(
         _check_web_upload_rate_limit(request)
         filename = _clean_filename(file.filename)
         raw = _read_upload(file, config.max_upload_bytes)
+
+        presentees_data: tuple[str, bytes] | None = None
+        if presentees_file and presentees_file.filename and presentees_file.filename.strip():
+            p_name = _clean_filename(presentees_file.filename)
+            p_bytes = _read_upload(presentees_file, config.max_upload_bytes)
+            presentees_data = (p_name, p_bytes)
+
+        absentees_data: tuple[str, bytes] | None = None
+        if absentees_file and absentees_file.filename and absentees_file.filename.strip():
+            a_name = _clean_filename(absentees_file.filename)
+            a_bytes = _read_upload(absentees_file, config.max_upload_bytes)
+            absentees_data = (a_name, a_bytes)
+
         job_id = uuid4().hex
         record, _ = tracker.create(_new_record(job_id, filename, requested_by))
         try:
-            completed = _process_job(job_id, (filename, raw))
+            completed = _process_job(
+                job_id,
+                (filename, raw),
+                presentees=presentees_data,
+                absentees=absentees_data,
+            )
         except Exception as exc:
             status_code, safe_message = _safe_error(exc)
             failed = tracker.get(job_id)
