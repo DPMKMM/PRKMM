@@ -665,6 +665,25 @@ TAX_PAGE_HTML = """<!doctype html>
       return n.toLocaleString('en-IN');
     }
 
+    function getGradientColor(pct) {
+      pct = Math.max(0, Math.min(100, Number(pct) || 0));
+      let r, g, b;
+      if (pct <= 50) {
+        const t = pct / 50;
+        r = Math.round(220 + t * (234 - 220));
+        g = Math.round(38 + t * (179 - 38));
+        b = Math.round(38 + t * (8 - 38));
+      } else {
+        const t = (pct - 50) / 50;
+        r = Math.round(234 + t * (22 - 234));
+        g = Math.round(179 + t * (163 - 179));
+        b = Math.round(8 + t * (74 - 8));
+      }
+      const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      const textCol = lum > 0.55 ? '#000000' : '#FFFFFF';
+      return { bg: `rgb(${r}, ${g}, ${b})`, text: textCol };
+    }
+
     function switchTab(tab) {
       document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -796,6 +815,8 @@ TAX_PAGE_HTML = """<!doctype html>
 
       let html = '';
       abstractList.forEach((m, idx) => {
+        const mPct = Math.round(m.percentage);
+        const { bg, text } = getGradientColor(mPct);
         html += `<tr>
           <td class="center-cell">${idx + 1}</td>
           <td><strong>${m.mandal}</strong></td>
@@ -810,11 +831,12 @@ TAX_PAGE_HTML = """<!doctype html>
           <td class="num-cell">${formatInr(m.balance_arrear)}</td>
           <td class="num-cell">${formatInr(m.balance_current)}</td>
           <td class="num-cell"><strong>${formatInr(m.balance_total)}</strong></td>
-          <td class="center-cell"><span class="pct-badge">${Math.round(m.percentage)}%</span></td>
+          <td class="center-cell"><span class="pct-badge" style="background:${bg}; color:${text};">${mPct}%</span></td>
         </tr>`;
       });
 
       // Total row
+      const totColor = getGradientColor(summary.overall_percentage);
       html += `<tr class="total-row">
         <td class="center-cell">Σ</td>
         <td><strong>Total (${summary.district})</strong></td>
@@ -829,7 +851,7 @@ TAX_PAGE_HTML = """<!doctype html>
         <td class="num-cell">${formatInr(summary.balance_arrear)}</td>
         <td class="num-cell">${formatInr(summary.balance_current)}</td>
         <td class="num-cell"><strong>${formatInr(summary.total_balance)}</strong></td>
-        <td class="center-cell"><span class="pct-badge">${summary.overall_percentage}%</span></td>
+        <td class="center-cell"><span class="pct-badge" style="background:${totColor.bg}; color:${totColor.text};">${summary.overall_percentage}%</span></td>
       </tr>`;
 
       tbody.innerHTML = html;
@@ -869,6 +891,7 @@ TAX_PAGE_HTML = """<!doctype html>
       let html = '';
       pageRows.forEach((r, idx) => {
         const pct = Math.round(r.calc_percentage || 0);
+        const { bg, text } = getGradientColor(pct);
         html += `<tr>
           <td class="center-cell">${start + idx + 1}</td>
           <td>${r.mandal}</td>
@@ -881,7 +904,7 @@ TAX_PAGE_HTML = """<!doctype html>
           <td class="num-cell">${formatInr(r.collection_current)}</td>
           <td class="num-cell"><strong>${formatInr(r.collection_total)}</strong></td>
           <td class="num-cell"><strong>${formatInr(r.balance_total)}</strong></td>
-          <td class="center-cell"><span class="pct-badge">${pct}%</span></td>
+          <td class="center-cell"><span class="pct-badge" style="background:${bg}; color:${text};">${pct}%</span></td>
         </tr>`;
       });
 

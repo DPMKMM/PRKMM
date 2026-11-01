@@ -42,6 +42,36 @@ def format_indian_currency(val: float | int | str) -> str:
     return f"-{res}" if is_neg else res
 
 
+def get_gradient_color(pct: float | int) -> tuple[str, str]:
+    """Return (bg_hex, text_hex) for a smooth 3-color Green -> Yellow -> Red gradient scale.
+    Highest collection (100%) = Green (#16A34A)
+    Medium collection (50%) = Yellow (#EAB308)
+    Lowest collection (0%) = Red (#DC2626)
+    """
+    try:
+        p = max(0.0, min(100.0, float(pct)))
+    except (ValueError, TypeError):
+        p = 0.0
+
+    if p <= 50.0:
+        t = p / 50.0
+        # Red (220, 38, 38) -> Yellow (234, 179, 8)
+        r = int(220 + t * (234 - 220))
+        g = int(38 + t * (179 - 38))
+        b = int(38 + t * (8 - 38))
+    else:
+        t = (p - 50.0) / 50.0
+        # Yellow (234, 179, 8) -> Green (22, 163, 74)
+        r = int(234 + t * (22 - 234))
+        g = int(179 + t * (163 - 179))
+        b = int(8 + t * (74 - 8))
+
+    lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+    text_color = "#000000" if lum > 0.55 else "#FFFFFF"
+    hex_bg = f"#{r:02X}{g:02X}{b:02X}"
+    return hex_bg, text_color
+
+
 class NumberedCanvas(canvas.Canvas):
     """Two-pass canvas to dynamically compute and print 'Page X of Y' on every page."""
 
@@ -207,7 +237,7 @@ def generate_dcb_pdf(
     )
 
     # Column widths summing to 794 pt (fits 841.89 pt page with 24 pt margins)
-    col_widths = [26, 76, 96, 52, 58, 60, 54, 58, 60, 46, 52, 58, 62, 36]
+    col_widths = [28, 82, 110, 54, 60, 64, 56, 60, 64, 54, 60, 64, 38]
 
     headers = [
         "S No",
@@ -219,7 +249,6 @@ def generate_dcb_pdf(
         "Collection\nArrears",
         "Collection\nCurrent",
         "Collection\nTotal",
-        "Write off\ncurrent",
         "Balance\nArrears",
         "Balance\nCurrent",
         "Balance\nTotal",
@@ -251,11 +280,21 @@ def generate_dcb_pdf(
         tot_c_arr = m_df["collection_arrear"].sum()
         tot_c_cur = m_df["collection_current"].sum()
         tot_c_tot = m_df["collection_total"].sum()
-        tot_wo = m_df["write_off"].sum()
         tot_b_arr = m_df["balance_arrear"].sum()
         tot_b_cur = m_df["balance_current"].sum()
         tot_b_tot = m_df["balance_total"].sum()
         tot_pct = int(round(tot_c_tot / tot_d_tot * 100)) if tot_d_tot > 0 else 0
+
+        tot_bg_hex, tot_fg_hex = get_gradient_color(tot_pct)
+        tot_pct_style = ParagraphStyle(
+            f"TotPct_{m_idx}",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=7.5,
+            leading=9,
+            alignment=1,
+            textColor=colors.HexColor(tot_fg_hex),
+        )
 
         total_row = [
             Paragraph("", cell_total_label),
@@ -267,11 +306,10 @@ def generate_dcb_pdf(
             Paragraph(format_indian_currency(tot_c_arr), cell_total_num),
             Paragraph(format_indian_currency(tot_c_cur), cell_total_num),
             Paragraph(format_indian_currency(tot_c_tot), cell_total_num),
-            Paragraph(format_indian_currency(tot_wo), cell_total_num),
             Paragraph(format_indian_currency(tot_b_arr), cell_total_num),
             Paragraph(format_indian_currency(tot_b_cur), cell_total_num),
             Paragraph(format_indian_currency(tot_b_tot), cell_total_num),
-            Paragraph(str(tot_pct), cell_pct_style),
+            Paragraph(str(tot_pct), tot_pct_style),
         ]
 
         # Chunk the mandal rows into pages
@@ -291,8 +329,6 @@ def generate_dcb_pdf(
                 chunk_size = remaining
                 is_last_chunk_of_mandal = True
             elif remaining <= 23:
-                # If 23 remaining, putting all 23 leaves 1 total row for next page alone.
-                # Better to put 21-22 rows now so next page has some rows plus total
                 chunk_size = 21
                 is_last_chunk_of_mandal = False
             else:
@@ -314,6 +350,17 @@ def generate_dcb_pdf(
             for idx, r in enumerate(chunk):
                 s_no = cursor + idx + 1
                 pct_val = int(round(r.get("calc_percentage", 0)))
+                row_bg_hex, row_fg_hex = get_gradient_color(pct_val)
+                row_pct_style = ParagraphStyle(
+                    f"RowPct_{s_no}_{cursor}_{idx}",
+                    parent=styles["Normal"],
+                    fontName="Helvetica-Bold",
+                    fontSize=7.5,
+                    leading=9,
+                    alignment=1,
+                    textColor=colors.HexColor(row_fg_hex),
+                )
+
                 row = [
                     Paragraph(str(s_no), cell_body_center),
                     Paragraph(r.get("mandal", ""), cell_body_left),
@@ -324,22 +371,21 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(r.get("collection_arrear", 0)), cell_body_right),
                     Paragraph(format_indian_currency(r.get("collection_current", 0)), cell_body_right),
                     Paragraph(format_indian_currency(r.get("collection_total", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("write_off", 0)), cell_body_right),
                     Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cell_body_right),
                     Paragraph(format_indian_currency(r.get("balance_current", 0)), cell_body_right),
                     Paragraph(format_indian_currency(r.get("balance_total", 0)), cell_body_right),
-                    Paragraph(str(pct_val), cell_pct_style),
+                    Paragraph(str(pct_val), row_pct_style),
                 ]
                 row_idx = len(table_data)
                 table_data.append(row)
 
-                # Set % background to official green badge
-                table_styles.append(("BACKGROUND", (13, row_idx), (13, row_idx), colors.HexColor("#16874e")))
+                # Set % background to continuous Green-Yellow-Red gradient
+                table_styles.append(("BACKGROUND", (12, row_idx), (12, row_idx), colors.HexColor(row_bg_hex)))
 
             if is_last_chunk_of_mandal:
                 tot_idx = len(table_data)
                 table_data.append(total_row)
-                table_styles.append(("BACKGROUND", (13, tot_idx), (13, tot_idx), colors.HexColor("#16874e")))
+                table_styles.append(("BACKGROUND", (12, tot_idx), (12, tot_idx), colors.HexColor(tot_bg_hex)))
                 table_styles.append(("SPAN", (0, tot_idx), (1, tot_idx)))  # Span S.No and Mandal Name
 
             t = Table(table_data, colWidths=col_widths, repeatRows=1)
