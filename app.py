@@ -1005,8 +1005,8 @@ def create_app(
         return tax_service.get_filtered_data(district, mandal)
 
     @api.get("/api/tax/report.pdf")
-    def view_tax_pdf(district: str = "Khammam") -> Response:
-        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district)
+    def view_tax_pdf(district: str = "Khammam", mandal: str = "all") -> Response:
+        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district, mandal)
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",
@@ -1014,8 +1014,8 @@ def create_app(
         )
 
     @api.get("/api/tax/download-pdf")
-    def download_tax_pdf(district: str = "Khammam") -> Response:
-        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district)
+    def download_tax_pdf(district: str = "Khammam", mandal: str = "all") -> Response:
+        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district, mandal)
         return Response(
             content=pdf_bytes,
             media_type="application/pdf",

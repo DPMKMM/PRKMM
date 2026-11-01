@@ -730,27 +730,38 @@ TAX_PAGE_HTML = """<!doctype html>
       }
     }
 
+    function updateActionLinks() {
+      const dist = document.getElementById('district-select').value;
+      const mandal = document.getElementById('mandal-select').value;
+      const encDist = encodeURIComponent(dist);
+      const isAllMandals = !mandal || mandal === 'all';
+      const mandalParam = isAllMandals ? '' : `&mandal=${encodeURIComponent(mandal)}`;
+
+      const pdfUrl = `/api/tax/report.pdf?district=${encDist}${mandalParam}`;
+      const pdfDlUrl = `/api/tax/download-pdf?district=${encDist}${mandalParam}`;
+      const excelUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=xlsx`;
+      const csvUrl = `/api/tax/download?district=${encDist}${mandalParam}&format=csv`;
+
+      document.getElementById('btn-open-pdf-hero').href = pdfUrl;
+      document.getElementById('btn-view-pdf').href = pdfUrl;
+      document.getElementById('btn-download-pdf').href = pdfDlUrl;
+      document.getElementById('btn-download-excel').href = excelUrl;
+      document.getElementById('btn-download-csv').href = csvUrl;
+      document.getElementById('btn-fullscreen-pdf').href = pdfUrl;
+
+      const label = isAllMandals ? dist : `${dist} · ${mandal} Mandal`;
+      document.getElementById('pdf-dist-label').textContent = label;
+      document.getElementById('pdf-frame').src = pdfUrl;
+    }
+
     async function onDistrictChanged() {
       const dist = document.getElementById('district-select').value;
-      // Update URL query parameter without full reload
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('district', dist);
       window.history.replaceState({}, '', newUrl);
 
-      // Update Action Links
-      const encDist = encodeURIComponent(dist);
-      document.getElementById('btn-open-pdf-hero').href = `/api/tax/report.pdf?district=${encDist}`;
-      document.getElementById('btn-view-pdf').href = `/api/tax/report.pdf?district=${encDist}`;
-      document.getElementById('btn-download-pdf').href = `/api/tax/download-pdf?district=${encDist}`;
-      document.getElementById('btn-download-excel').href = `/api/tax/download?district=${encDist}&format=xlsx`;
-      document.getElementById('btn-download-csv').href = `/api/tax/download?district=${encDist}&format=csv`;
-      document.getElementById('btn-fullscreen-pdf').href = `/api/tax/report.pdf?district=${encDist}`;
-      document.getElementById('pdf-dist-label').textContent = dist;
-      document.getElementById('pdf-frame').src = `/api/tax/report.pdf?district=${encDist}`;
-
-      // Populate Mandals
       await loadMandals(dist);
-      // Load District Data
+      updateActionLinks();
       await loadData(dist);
     }
 
@@ -812,6 +823,9 @@ TAX_PAGE_HTML = """<!doctype html>
         tbody.innerHTML = '<tr><td colspan="14" class="center-cell" style="padding:20px;">No mandal records found.</td></tr>';
         return;
       }
+
+      // Sort Mandal-wise consolidated abstract in ascending order based on % Collection
+      abstractList.sort((a, b) => (Number(a.percentage) || 0) - (Number(b.percentage) || 0));
 
       let html = '';
       abstractList.forEach((m, idx) => {
@@ -954,6 +968,7 @@ TAX_PAGE_HTML = """<!doctype html>
     document.getElementById('district-select').addEventListener('change', onDistrictChanged);
     document.getElementById('mandal-select').addEventListener('change', () => {
       const dist = document.getElementById('district-select').value;
+      updateActionLinks();
       loadData(dist);
     });
     document.getElementById('search-input').addEventListener('input', applyFilter);

@@ -56,6 +56,14 @@ def test_tax_pdf_generation_endpoint():
     assert len(reader.pages) == 35
 
 
+def test_tax_single_mandal_pdf_endpoint():
+    resp = client.get("/api/tax/report.pdf?district=Khammam&mandal=Bonakal")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/pdf"
+    reader = PdfReader(io.BytesIO(resp.content))
+    assert len(reader.pages) == 1
+
+
 def test_tax_excel_download_endpoint():
     resp = client.get("/api/tax/download?district=Khammam&format=xlsx")
     assert resp.status_code == 200

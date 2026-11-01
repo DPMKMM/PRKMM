@@ -185,6 +185,8 @@ def get_filtered_data(district_name: Optional[str] = None, mandal_name: Optional
 
     pct_mandal = (mandal_groups["collection_total"] / mandal_groups["demand_total"].replace(0, float("nan")) * 100).fillna(0.0)
     mandal_groups["percentage"] = pct_mandal.astype(float).round(1)
+    # Sort Mandal-wise consolidated abstract in ascending order based on % Collection
+    mandal_groups = mandal_groups.sort_values(by=["percentage", "demand_total"], ascending=[True, True])
     mandal_rows = mandal_groups.to_dict(orient="records")
 
     records = filtered.to_dict(orient="records")
@@ -241,6 +243,7 @@ def generate_consolidated_excel(district_name: Optional[str] = None) -> bytes:
 
     pct_m = (mandal_summary["Collection_Total"] / mandal_summary["Demand_Total"].replace(0, float("nan")) * 100).fillna(0.0)
     mandal_summary["Collection_Percent"] = pct_m.astype(float).round(1)
+    mandal_summary = mandal_summary.sort_values(by=["Collection_Percent", "Demand_Total"], ascending=[True, True])
 
     # Detailed GP columns
     detail_df = df_sub[[

@@ -103,20 +103,27 @@ class NumberedCanvas(canvas.Canvas):
 
 def get_or_generate_dcb_pdf(
     district_name: str = "Khammam",
+    mandal_name: Optional[str] = None,
     force_regenerate: bool = False,
     report_date_str: Optional[str] = None,
 ) -> tuple[str, bytes]:
-    """Return filename and bytes of the generated DCB report for the district."""
+    """Return filename and bytes of the generated DCB report for the district / mandal."""
     safe_dist = district_name.strip().replace(" ", "_").title()
+    safe_mandal = ""
+    is_single_mandal = bool(mandal_name and mandal_name.strip().lower() not in ("all", "all mandals", ""))
+    if is_single_mandal and mandal_name:
+        safe_mandal = "_" + mandal_name.strip().replace(" ", "_").title()
+
     reports_dir = Path(__file__).resolve().parent / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = reports_dir / f"{safe_dist}_House_Tax_DCB_Report.pdf"
+    pdf_path = reports_dir / f"{safe_dist}{safe_mandal}_House_Tax_DCB_Report.pdf"
 
     if not force_regenerate and pdf_path.exists() and pdf_path.stat().st_size > 1000:
         return pdf_path.name, pdf_path.read_bytes()
 
     content = generate_dcb_pdf(
         district_name=district_name,
+        mandal_name=mandal_name,
         output_path_or_buffer=pdf_path,
         report_date_str=report_date_str,
     )
@@ -125,6 +132,7 @@ def get_or_generate_dcb_pdf(
 
 def generate_dcb_pdf(
     district_name: str = "Khammam",
+    mandal_name: Optional[str] = None,
     output_path_or_buffer: Any = None,
     report_date_str: Optional[str] = None,
 ) -> bytes:
@@ -137,6 +145,10 @@ def generate_dcb_pdf(
         df_dist = df[df["district"].str.lower() == district_name.strip().lower()].copy()
     else:
         df_dist = df.copy()
+
+    is_single_mandal = bool(mandal_name and mandal_name.strip().lower() not in ("all", "all mandals", ""))
+    if is_single_mandal and mandal_name:
+        df_dist = df_dist[df_dist["mandal"].str.lower() == mandal_name.strip().lower()].copy()
 
     if report_date_str is None:
         report_date_str = datetime.now().strftime("%d-%b-%Y")
