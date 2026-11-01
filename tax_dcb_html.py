@@ -351,6 +351,37 @@ TAX_PAGE_HTML = """<!doctype html>
     .center-cell {
       text-align: center;
     }
+    .pct-meter {
+      position: relative;
+      width: 68px;
+      height: 22px;
+      margin: 0 auto;
+      background: #edf2ef;
+      border: 1px solid #cbd5cf;
+      border-radius: 5px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .pct-meter-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      border-radius: 4px;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .pct-meter-text {
+      position: relative;
+      z-index: 2;
+      font-weight: 800;
+      font-size: 0.78rem;
+      color: #111827;
+      text-shadow: 0 0 3px rgba(255, 255, 255, 0.95), 0 0 1px #ffffff;
+      letter-spacing: -0.01em;
+    }
     .pct-badge {
       display: inline-block;
       min-width: 42px;
@@ -689,6 +720,16 @@ TAX_PAGE_HTML = """<!doctype html>
       return { bg: `rgb(${r}, ${g}, ${b})`, text: textCol };
     }
 
+    function renderPctCell(pctVal) {
+      const p = Math.max(0, Math.min(100, Math.round(Number(pctVal) || 0)));
+      const { bg } = getGradientColor(p);
+      const fillW = p > 0 ? Math.max(p, 3) : 0;
+      return `<div class="pct-meter" title="${p}% Collection">
+        <div class="pct-meter-fill" style="width: ${fillW}%; background: ${bg};"></div>
+        <span class="pct-meter-text">${p}%</span>
+      </div>`;
+    }
+
     function switchTab(tab) {
       document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -887,7 +928,7 @@ TAX_PAGE_HTML = """<!doctype html>
           <td class="num-cell">${formatInr(m.balance_arrear)}</td>
           <td class="num-cell">${formatInr(m.balance_current)}</td>
           <td class="num-cell"><strong>${formatInr(m.balance_total)}</strong></td>
-          <td class="center-cell"><span class="pct-badge" style="background:${bg}; color:${text};">${mPct}%</span></td>
+          <td class="center-cell">${renderPctCell(mPct)}</td>
         </tr>`;
       });
 
@@ -907,7 +948,7 @@ TAX_PAGE_HTML = """<!doctype html>
         <td class="num-cell">${formatInr(summary.balance_arrear)}</td>
         <td class="num-cell">${formatInr(summary.balance_current)}</td>
         <td class="num-cell"><strong>${formatInr(summary.total_balance)}</strong></td>
-        <td class="center-cell"><span class="pct-badge" style="background:${totColor.bg}; color:${totColor.text};">${summary.overall_percentage}%</span></td>
+        <td class="center-cell">${renderPctCell(summary.overall_percentage)}</td>
       </tr>`;
 
       tbody.innerHTML = html;
@@ -960,7 +1001,7 @@ TAX_PAGE_HTML = """<!doctype html>
           <td class="num-cell">${formatInr(r.collection_current)}</td>
           <td class="num-cell"><strong>${formatInr(r.collection_total)}</strong></td>
           <td class="num-cell"><strong>${formatInr(r.balance_total)}</strong></td>
-          <td class="center-cell"><span class="pct-badge" style="background:${bg}; color:${text};">${pct}%</span></td>
+          <td class="center-cell">${renderPctCell(pct)}</td>
         </tr>`;
       });
 
