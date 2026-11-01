@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -162,8 +163,8 @@ def generate_dcb_pdf(
         pagesize=landscape(A4),
         leftMargin=24,
         rightMargin=24,
-        topMargin=22,
-        bottomMargin=28,
+        topMargin=16,
+        bottomMargin=22,
     )
 
     styles = getSampleStyleSheet()
@@ -171,11 +172,11 @@ def generate_dcb_pdf(
         "DCBTitle",
         parent=styles["Normal"],
         fontName="Helvetica-Bold",
-        fontSize=13.5,
-        leading=16,
+        fontSize=12.5,
+        leading=15,
         alignment=1,  # Centered
         textColor=colors.HexColor("#0B5ED7"),
-        spaceAfter=10,
+        spaceAfter=6,
     )
 
     cell_hdr_style = ParagraphStyle(
@@ -324,39 +325,51 @@ def generate_dcb_pdf(
             Paragraph(str(tot_pct), tot_pct_style),
         ]
 
-        # Chunk the mandal rows into pages
+        # Chunk the mandal rows into pages using best fit
+        # Below 25 to 28 GPs -> single page. Around 40 GPs -> 2 pages.
         gp_records = m_df.to_dict(orient="records")
         total_gps = len(gp_records)
-        cursor = 0
+        num_pages_mandal = max(1, math.ceil(total_gps / 28))
+        gps_per_page = math.ceil(total_gps / num_pages_mandal)
 
-        while cursor < total_gps:
+        cursor = 0
+        for page_idx in range(num_pages_mandal):
             if not is_first_page:
                 flowables.append(PageBreak())
             is_first_page = False
 
-            # Check how many rows can fit on this page
-            # If remaining rows + 1 (total row) <= 24, fit all and add total row
-            remaining = total_gps - cursor
-            if remaining + 1 <= 24:
-                chunk_size = remaining
-                is_last_chunk_of_mandal = True
-            elif remaining <= 23:
-                chunk_size = 21
-                is_last_chunk_of_mandal = False
-            else:
-                chunk_size = 23
-                is_last_chunk_of_mandal = False
-
+            is_last_chunk_of_mandal = (page_idx == num_pages_mandal - 1)
+            chunk_size = total_gps - cursor if is_last_chunk_of_mandal else gps_per_page
             chunk = gp_records[cursor : cursor + chunk_size]
+            total_rows_on_page = len(chunk) + 1 + (1 if is_last_chunk_of_mandal else 0)
+
+            # Best-fit vertical padding and font size based on row count
+            if total_rows_on_page <= 20:
+                pad_v = 3.6
+                f_sz = 7.0
+                f_lead = 8.5
+            elif total_rows_on_page <= 25:
+                pad_v = 2.8
+                f_sz = 6.8
+                f_lead = 8.0
+            else:
+                pad_v = 1.7
+                f_sz = 6.4
+                f_lead = 7.4
+
+            cur_cell_left = ParagraphStyle(f"CBL_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=0, textColor=colors.black)
+            cur_cell_right = ParagraphStyle(f"CBR_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=2, textColor=colors.black)
+            cur_cell_center = ParagraphStyle(f"CBC_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=1, textColor=colors.black)
+
             table_data = [header_row]
             table_styles = [
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#333333")),
                 ("BACKGROUND", (0, 0), (-1, 0), colors.white),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), 2.5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
-                ("LEFTPADDING", (0, 0), (-1, -1), 2.5),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 2.5),
+                ("TOPPADDING", (0, 0), (-1, -1), pad_v),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), pad_v),
+                ("LEFTPADDING", (0, 0), (-1, -1), 2.2),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 2.2),
             ]
 
             for idx, r in enumerate(chunk):
@@ -367,25 +380,25 @@ def generate_dcb_pdf(
                     f"RowPct_{s_no}_{cursor}_{idx}",
                     parent=styles["Normal"],
                     fontName="Helvetica-Bold",
-                    fontSize=7.5,
-                    leading=9,
+                    fontSize=f_sz + 0.3,
+                    leading=f_lead,
                     alignment=1,
                     textColor=colors.HexColor(row_fg_hex),
                 )
 
                 row = [
-                    Paragraph(str(s_no), cell_body_center),
-                    Paragraph(r.get("mandal", ""), cell_body_left),
-                    Paragraph(r.get("panchayat", ""), cell_body_left),
-                    Paragraph(format_indian_currency(r.get("demand_arrear", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("demand_current", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("demand_total", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("collection_arrear", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("collection_current", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("collection_total", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("balance_current", 0)), cell_body_right),
-                    Paragraph(format_indian_currency(r.get("balance_total", 0)), cell_body_right),
+                    Paragraph(str(s_no), cur_cell_center),
+                    Paragraph(r.get("mandal", ""), cur_cell_left),
+                    Paragraph(r.get("panchayat", ""), cur_cell_left),
+                    Paragraph(format_indian_currency(r.get("demand_arrear", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("demand_current", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("demand_total", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("collection_arrear", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("collection_current", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("collection_total", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("balance_current", 0)), cur_cell_right),
+                    Paragraph(format_indian_currency(r.get("balance_total", 0)), cur_cell_right),
                     Paragraph(str(pct_val), row_pct_style),
                 ]
                 row_idx = len(table_data)
