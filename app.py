@@ -175,8 +175,182 @@ UPLOAD_PAGE_HTML = """<!doctype html>
     button[type="submit"]:disabled { opacity: .6; cursor: wait; }
     .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 24px; }
     .notice { margin: 16px 0; padding: 12px 14px; border-radius: 10px; background: #eef6f2; border-left: 4px solid #167451; color: #1b4938; line-height: 1.5; font-size: 0.88rem; }
-    .message { min-height: 1.5em; margin-top: 14px; color: #8b2635; font-weight: 600; }
-    .message.success { color: #176247; }
+    
+    /* Inline Status & Alert Banners */
+    .message { display: none; margin-top: 16px; padding: 13px 16px; border-radius: 10px; font-weight: 600; font-size: 0.92rem; line-height: 1.5; animation: fadeIn 0.2s ease-in; }
+    .message.active { display: block; }
+    .message.info { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .message.success { background: #dcfce7; color: #14532d; border: 1.5px solid #86efac; box-shadow: 0 4px 14px rgba(22, 116, 81, 0.08); }
+    .message.error { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; }
+    .message-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .message-text { display: flex; align-items: center; gap: 10px; flex: 1; }
+    .message-btn-open { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 6px; background: #167451; color: white; text-decoration: none; font-size: 0.84rem; font-weight: 700; cursor: pointer; border: none; transition: background 0.15s; }
+    .message-btn-open:hover { background: #115d40; }
+
+    /* Floating Download Toast & Notification Center */
+    .download-toast-container {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 28px);
+      max-width: 480px;
+      z-index: 999999;
+      pointer-events: none;
+    }
+    .download-toast-card {
+      pointer-events: auto;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1.5px solid #334155;
+      border-radius: 14px;
+      box-shadow: 0 16px 38px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25);
+      overflow: hidden;
+      animation: toastSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      backdrop-filter: blur(8px);
+    }
+    @keyframes toastSlideUp {
+      from { opacity: 0; transform: translateY(28px) scale(0.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .download-toast-card.toast-exit {
+      animation: toastSlideDown 0.28s cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
+    @keyframes toastSlideDown {
+      from { opacity: 1; transform: translateY(0) scale(1); }
+      to { opacity: 0; transform: translateY(28px) scale(0.96); }
+    }
+    .download-toast-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+    }
+    .download-toast-icon-wrap {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .download-toast-icon-wrap.loading {
+      background: rgba(14, 165, 233, 0.18);
+      color: #38bdf8;
+    }
+    .download-toast-icon-wrap.success {
+      background: rgba(34, 197, 94, 0.22);
+      color: #4ade80;
+    }
+    .download-toast-icon-wrap.error {
+      background: rgba(239, 68, 68, 0.22);
+      color: #f87171;
+    }
+    .download-toast-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .download-toast-title {
+      font-weight: 700;
+      font-size: 0.94rem;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+    .download-toast-subtitle {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .download-toast-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+    .download-toast-close:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .download-toast-actions {
+      display: flex;
+      gap: 8px;
+      padding: 0 16px 14px 16px;
+    }
+    .download-toast-btn-open {
+      flex: 1;
+      background: #16a34a;
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s;
+      text-decoration: none;
+    }
+    .download-toast-btn-open:hover, .download-toast-btn-open:active {
+      background: #15803d;
+    }
+    .download-toast-btn-dismiss {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .download-toast-btn-dismiss:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .download-toast-progress {
+      height: 3px;
+      background: linear-gradient(90deg, #10b981, #06b6d4);
+      width: 100%;
+      transform-origin: left;
+    }
+    .download-toast-progress.loading {
+      animation: toastProgressPulse 1.5s infinite;
+    }
+    @keyframes toastProgressPulse {
+      0% { transform: scaleX(0.1); opacity: 0.6; }
+      50% { transform: scaleX(0.8); opacity: 1; }
+      100% { transform: scaleX(1); opacity: 0.4; }
+    }
+    .toast-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: toastSpin 0.75s linear infinite;
+    }
+    @keyframes toastSpin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     .fine-print { border-top: 1px solid #e5eee9; margin-top: 26px; padding-top: 18px; font-size: 0.88rem; color: #627b72; line-height: 1.55; }
 
     /* Footer */
@@ -390,6 +564,31 @@ UPLOAD_PAGE_HTML = """<!doctype html>
     </div>
   </main>
 
+  <!-- Floating Mobile/Desktop Download Notification Center -->
+  <div id="download-toast-container" class="download-toast-container" style="display:none;" role="alert" aria-live="assertive">
+    <div class="download-toast-card">
+      <div class="download-toast-header">
+        <div id="download-toast-icon" class="download-toast-icon-wrap loading">
+          <div class="toast-spinner"></div>
+        </div>
+        <div class="download-toast-body">
+          <div id="download-toast-title" class="download-toast-title">Generating DSR Report...</div>
+          <div id="download-toast-subtitle" class="download-toast-subtitle">Processing attendance data, please wait...</div>
+        </div>
+        <button type="button" class="download-toast-close" onclick="dismissDownloadToast()" aria-label="Close notification">&times;</button>
+      </div>
+      <div id="download-toast-actions" class="download-toast-actions" style="display:none;">
+        <button type="button" id="download-toast-open-btn" class="download-toast-btn-open">
+          <span>📄</span> Open / View PDF
+        </button>
+        <button type="button" class="download-toast-btn-dismiss" onclick="dismissDownloadToast()">
+          Dismiss
+        </button>
+      </div>
+      <div id="download-toast-progress-bar" class="download-toast-progress loading"></div>
+    </div>
+  </div>
+
   <footer>
     Executive Analytics &amp; Monitoring Portal Owned, maintained and updated by DPM Khammam
   </footer>
@@ -476,9 +675,160 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }
       };
 
-      function showMessage(element, message, success = false) {
-        element.textContent = message;
-        element.classList.toggle('success', success);
+      // State for active download toast & blobs
+      let _activeBlobUrl = null;
+      let _toastTimer = null;
+
+      function requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+          try { Notification.requestPermission(); } catch(e){}
+        }
+      }
+
+      function dismissDownloadToast() {
+        const container = document.getElementById('download-toast-container');
+        const card = container ? container.querySelector('.download-toast-card') : null;
+        if (!container || !card) return;
+        card.classList.add('toast-exit');
+        setTimeout(() => {
+          container.style.display = 'none';
+          card.classList.remove('toast-exit');
+        }, 260);
+        if (_toastTimer) {
+          clearTimeout(_toastTimer);
+          _toastTimer = null;
+        }
+      }
+
+      function showToastLoading(title, subtitle) {
+        requestNotificationPermission();
+        const container = document.getElementById('download-toast-container');
+        const iconWrap = document.getElementById('download-toast-icon');
+        const titleEl = document.getElementById('download-toast-title');
+        const subtitleEl = document.getElementById('download-toast-subtitle');
+        const actionsEl = document.getElementById('download-toast-actions');
+        const progressBar = document.getElementById('download-toast-progress-bar');
+        if (!container) return;
+
+        if (_toastTimer) {
+          clearTimeout(_toastTimer);
+          _toastTimer = null;
+        }
+
+        container.style.display = 'block';
+        const card = container.querySelector('.download-toast-card');
+        if (card) card.classList.remove('toast-exit');
+
+        iconWrap.className = 'download-toast-icon-wrap loading';
+        iconWrap.innerHTML = '<div class="toast-spinner"></div>';
+        titleEl.textContent = title || 'Generating Report...';
+        subtitleEl.textContent = subtitle || 'Processing attendance data, please wait...';
+        actionsEl.style.display = 'none';
+        progressBar.style.display = 'block';
+        progressBar.className = 'download-toast-progress loading';
+      }
+
+      function showToastSuccess(title, subtitle, filename, blobUrl) {
+        const container = document.getElementById('download-toast-container');
+        const iconWrap = document.getElementById('download-toast-icon');
+        const titleEl = document.getElementById('download-toast-title');
+        const subtitleEl = document.getElementById('download-toast-subtitle');
+        const actionsEl = document.getElementById('download-toast-actions');
+        const openBtn = document.getElementById('download-toast-open-btn');
+        const progressBar = document.getElementById('download-toast-progress-bar');
+        if (!container) return;
+
+        iconWrap.className = 'download-toast-icon-wrap success';
+        iconWrap.innerHTML = '✅';
+        titleEl.textContent = title || 'Download Complete!';
+        subtitleEl.textContent = subtitle || `${filename} saved to Downloads.`;
+        progressBar.style.display = 'none';
+        actionsEl.style.display = 'flex';
+
+        if (blobUrl) {
+          openBtn.style.display = 'inline-flex';
+          openBtn.onclick = () => window.open(blobUrl, '_blank');
+        } else {
+          openBtn.style.display = 'none';
+        }
+
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification('DSR Report Downloaded', {
+              body: `${filename} has been saved to your downloads.`,
+            });
+          } catch(e){}
+        }
+
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => {
+          dismissDownloadToast();
+        }, 14000);
+      }
+
+      function showToastError(title, subtitle) {
+        const container = document.getElementById('download-toast-container');
+        const iconWrap = document.getElementById('download-toast-icon');
+        const titleEl = document.getElementById('download-toast-title');
+        const subtitleEl = document.getElementById('download-toast-subtitle');
+        const actionsEl = document.getElementById('download-toast-actions');
+        const openBtn = document.getElementById('download-toast-open-btn');
+        const progressBar = document.getElementById('download-toast-progress-bar');
+        if (!container) return;
+
+        iconWrap.className = 'download-toast-icon-wrap error';
+        iconWrap.innerHTML = '⚠️';
+        titleEl.textContent = title || 'Report Generation Failed';
+        subtitleEl.textContent = subtitle || 'An error occurred while generating the report.';
+        progressBar.style.display = 'none';
+        actionsEl.style.display = 'flex';
+        openBtn.style.display = 'none';
+
+        if (_toastTimer) clearTimeout(_toastTimer);
+        _toastTimer = setTimeout(() => {
+          dismissDownloadToast();
+        }, 8000);
+      }
+
+      function showMessage(element, message, status = 'info', blobUrl = null, filename = '') {
+        if (!element) return;
+        if (status === true) status = 'success';
+        if (status === false) status = 'error';
+
+        element.className = `message active ${status}`;
+        if (status === 'success') {
+          let openBtnHtml = blobUrl ? `<button type="button" class="message-btn-open" onclick="window.open('${blobUrl}', '_blank')"><span>📄</span> Open PDF</button>` : '';
+          element.innerHTML = `
+            <div class="message-content">
+              <div class="message-text">
+                <span style="font-size:1.25rem; line-height:1;">✅</span>
+                <div>
+                  <div style="font-weight:700; color:#14532d;">${message}</div>
+                  ${filename ? `<div style="font-size:0.82rem; font-weight:500; color:#166534; margin-top:2px;">📁 ${filename}</div>` : ''}
+                </div>
+              </div>
+              ${openBtnHtml}
+            </div>
+          `;
+        } else if (status === 'error') {
+          element.innerHTML = `
+            <div class="message-content">
+              <div class="message-text">
+                <span style="font-size:1.25rem; line-height:1;">⚠️</span>
+                <div style="font-weight:600; color:#991b1b;">${message}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          element.innerHTML = `
+            <div class="message-content">
+              <div class="message-text">
+                <span style="font-size:1.25rem; line-height:1;">⏳</span>
+                <div style="font-weight:600; color:#0369a1;">${message}</div>
+              </div>
+            </div>
+          `;
+        }
       }
 
       async function readResponse(response) {
@@ -531,38 +881,64 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       // Generic job runner
       async function runReportJob(formData, submitBtn, messageEl, fallbackFilename) {
         submitBtn.disabled = true;
-        showMessage(messageEl, 'Uploading and processing the attendance data…');
+        const modeLabel = formData.get('report_mode') === 'mandal' ? 'Mandal' : 'District';
+        showToastLoading(`Generating ${modeLabel} DSR Report...`, 'Uploading attendance data to analytics engine...');
+        showMessage(messageEl, `Uploading and processing ${modeLabel.toLowerCase()} attendance data…`, 'info');
         try {
           let job = await apiJson('/api/web/reports', { method: 'POST', body: formData });
           const jobId = job.job_id;
           if (!jobId) throw new Error('The service did not return a report job ID.');
           let attempts = 0;
           while (job.status === 'Submitted' || job.status === 'Processing') {
-            showMessage(messageEl, `Report ${job.status.toLowerCase()}…`);
+            const statusDetail = job.status === 'Processing' ? 'Analyzing GP attendance & generating PDF…' : 'Queued in processing pipeline…';
+            showToastLoading(`Processing ${modeLabel} DSR Report...`, statusDetail);
+            showMessage(messageEl, `Report ${job.status.toLowerCase()}… (${statusDetail})`, 'info');
             if (attempts++ > 180) throw new Error('The report is taking too long. Please try again later.');
             await new Promise(resolve => setTimeout(resolve, 2000));
             job = await apiJson(`/api/web/reports/${encodeURIComponent(jobId)}`);
           }
           if (job.status !== 'Completed') throw new Error(job.notes || 'The report job did not complete.');
-          showMessage(messageEl, 'Report ready. Downloading PDF…', true);
+
+          showToastLoading('Downloading PDF Report...', 'Fetching generated document...');
+          showMessage(messageEl, 'Report ready! Fetching and downloading PDF…', 'info');
+
           const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
             credentials: 'same-origin'
           });
           if (!pdfResponse.ok) await readResponse(pdfResponse);
           const blob = await pdfResponse.blob();
+
+          if (_activeBlobUrl) {
+            try { URL.revokeObjectURL(_activeBlobUrl); } catch(e){}
+          }
           const objectUrl = URL.createObjectURL(blob);
+          _activeBlobUrl = objectUrl;
+
+          const disposition = pdfResponse.headers.get('Content-Disposition') || '';
+          const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || fallbackFilename;
+
           const link = document.createElement('a');
           link.href = objectUrl;
-          const disposition = pdfResponse.headers.get('Content-Disposition') || '';
-          const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1];
-          link.download = fileName || fallbackFilename;
+          link.download = fileName;
           document.body.appendChild(link);
           link.click();
           link.remove();
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-          showMessage(messageEl, 'Report downloaded successfully! You can upload another file.', true);
+
+          // Show floating toast and banner notification
+          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, objectUrl);
+          showMessage(messageEl, 'Report downloaded successfully! You can upload another file or view the PDF.', 'success', objectUrl, fileName);
+
+          // Keep blob URL active for 5 minutes for direct viewing
+          setTimeout(() => {
+            if (_activeBlobUrl === objectUrl) {
+              URL.revokeObjectURL(objectUrl);
+              _activeBlobUrl = null;
+            }
+          }, 300000);
         } catch (error) {
-          showMessage(messageEl, error.message || 'Report generation failed.');
+          const errMsg = error.message || 'Report generation failed.';
+          showToastError('Report Generation Failed', errMsg);
+          showMessage(messageEl, errMsg, 'error');
         } finally {
           submitBtn.disabled = false;
         }
