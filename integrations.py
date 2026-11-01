@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import sqlite3
 from contextlib import closing
@@ -48,6 +49,17 @@ class JobRecord:
     notes: str = ""
     local_pdf_path: str = ""
 
+    @property
+    def download_filename(self) -> str:
+        match = re.search(r"(?:^|;\s*)Download filename: ([A-Za-z0-9_-]+\.pdf)(?:$|;)", self.notes)
+        if match:
+            return match.group(1)
+        if self.local_pdf_path:
+            candidate = Path(self.local_pdf_path).name
+            if candidate.endswith(".pdf"):
+                return candidate
+        return "PS_Attendance_Report.pdf"
+
     def public_dict(self) -> dict[str, str]:
         return {
             "job_id": self.job_id,
@@ -57,6 +69,7 @@ class JobRecord:
             "status": self.status,
             "output_pdf": self.output_pdf,
             "notes": self.notes,
+            "download_filename": self.download_filename,
         }
 
 

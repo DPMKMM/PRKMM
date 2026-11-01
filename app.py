@@ -16,6 +16,9 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
@@ -36,6 +39,7 @@ from report_generator import (
     process_attendance_file,
 )
 from tax_dcb_html import TAX_PAGE_HTML
+from naresh_html import NARESH_PAGE_HTML
 import tax_service
 import dcb_pdf_generator
 import powerbi_pdf_generator
@@ -44,6 +48,7 @@ import powerbi_pdf_generator
 
 logger = logging.getLogger("khammam_attendance")
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper(), format="%(message)s")
+BASE_DIR = Path(__file__).resolve().parent
 MAX_UPLOAD_BYTES = 30 * 1024 * 1024
 JOB_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 WEB_JOB_COOKIE_NAME = "khammam_web_report"
@@ -419,8 +424,21 @@ UPLOAD_PAGE_HTML = """<!doctype html>
                 <span class="badge-live" style="margin-top:3px; display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:4px;">● Live</span>
               </div>
             </a>
+
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-header">Automated Portal</div>
+
+            <a class="dropdown-item" href="/naresh">
+              <span class="dropdown-item-icon">⚡</span>
+              <div class="dropdown-item-content">
+                <strong>Naresh Automated Portal</strong>
+                <span>Live Feed &amp; Direct DSR Report (No Upload)</span>
+                <span class="badge-live" style="margin-top:3px; display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:4px; background:#f59e0b; color:#1a1a1a;">⚡ Live</span>
+              </div>
+            </a>
           </div>
         </div>
+        <a class="nav-link" href="/naresh" style="color: #fbbf24; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">⚡ Naresh Portal</a>
       </nav>
     </div>
   </header>
@@ -510,6 +528,21 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         <!-- TAB 1: District Level Monitoring -->
         <div id="tab-district" class="tab-content active">
+          <!-- Automated DSR Card (Naresh) -->
+          <div class="auto-dsr-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.12);">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span style="background: #10b981; color: white; font-size: 0.72rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">⚡ Live Feed Active</span>
+                <span style="font-size: 0.82rem; font-weight: 600; color: #047857;">e-Panchayat Telangana &bull; Khammam District</span>
+              </div>
+              <strong style="font-size: 1.05rem; color: #064e3b; display: block; margin-bottom: 4px;">Today's Automated DSR Report is Ready</strong>
+              <span style="font-size: 0.88rem; color: #065f46;">Synced directly from Department Login. Generate and view official PDF <strong>without uploading any Excel file</strong>.</span>
+            </div>
+            <button type="button" class="btn-auto-load" onclick="loadAutomatedDSRReport('district')" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); transition: transform 0.2s; white-space: nowrap;">
+              ⚡ Generate Report (No Upload Required)
+            </button>
+          </div>
+
           <div class="notice">
             <strong>District Monitoring:</strong> Automatically detects your District, all Mandals, and Gram Panchayats directly from the uploaded raw data file. When Presentees and Absentees files are provided, secretary details (Name, Mobile, Nature of Posting) are dynamically matched by LGD code.
           </div>
@@ -542,6 +575,21 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         <!-- TAB 2: Mandal Level Monitoring -->
         <div id="tab-mandal" class="tab-content">
+          <!-- Automated Mandal Card -->
+          <div class="auto-dsr-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.12);">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <span style="background: #10b981; color: white; font-size: 0.72rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">⚡ Live Feed Active</span>
+                <span style="font-size: 0.82rem; font-weight: 600; color: #047857;">e-Panchayat Telangana &bull; Khammam District</span>
+              </div>
+              <strong style="font-size: 1.05rem; color: #064e3b; display: block; margin-bottom: 4px;">Generate Mandal Report from Live Automated Feed</strong>
+              <span style="font-size: 0.88rem; color: #065f46;">Generate focused 2-page Mandal Officer report directly <strong>without uploading any Excel file</strong>.</span>
+            </div>
+            <button type="button" class="btn-auto-load" onclick="loadAutomatedDSRReport('mandal')" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); transition: transform 0.2s; white-space: nowrap;">
+              ⚡ Generate Mandal Report (No Upload)
+            </button>
+          </div>
+
           <div class="notice">
             <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
           </div>
@@ -656,12 +704,13 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       // Hash routing
       function handleHash() {
         const hash = window.location.hash.toLowerCase();
+        const isAuto = window.location.href.includes('auto=true');
         if (hash.startsWith('#reports-mandal')) {
           window.navigateTo('reports', 'mandal');
-        } else if (hash.startsWith('#reports-district')) {
+          if (isAuto) setTimeout(() => window.loadAutomatedDSRReport('mandal'), 350);
+        } else if (hash.startsWith('#reports-district') || hash.startsWith('#reports')) {
           window.navigateTo('reports', 'district');
-        } else if (hash.startsWith('#reports')) {
-          window.navigateTo('reports');
+          if (isAuto) setTimeout(() => window.loadAutomatedDSRReport('district'), 350);
         } else if (hash === '#guidelines' || hash === '#guidelines-section') {
           window.navigateTo('home', null, 'guidelines-section');
         } else {
@@ -669,6 +718,72 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }
       }
       window.addEventListener('hashchange', handleHash);
+
+      // Automated DSR Report Loader (Naresh - No Excel Upload Required)
+      window.loadAutomatedDSRReport = async function(mode) {
+        const isMandal = mode === 'mandal';
+        const submitBtn = isMandal ? document.getElementById('mandal-generate-button') : document.getElementById('generate-button');
+        const messageEl = isMandal ? document.getElementById('mandal-report-message') : document.getElementById('report-message');
+        let mandalName = '';
+        if (isMandal) {
+          const sel = document.getElementById('mandal-select');
+          mandalName = sel ? sel.value : '';
+        }
+        
+        const fd = new FormData();
+        fd.append('report_mode', mode || 'district');
+        if (mandalName) fd.append('mandal_name', mandalName);
+        
+        if (submitBtn) submitBtn.disabled = true;
+        const modeLabel = isMandal ? 'Mandal' : 'District';
+        showToastLoading(`Loading Automated ${modeLabel} Report...`, 'Fetching live e-Panchayat data (No upload required)...');
+        showMessage(messageEl, `Processing automated ${modeLabel.toLowerCase()} report from live portal sync`, 'info');
+        
+        try {
+          const res = await fetch('/api/web/reports/auto-load', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+          });
+          if (!res.ok) {
+            const errJson = await res.json().catch(() => ({}));
+            throw new Error(errJson.detail?.message || errJson.detail || 'Could not load automated report.');
+          }
+          const job = await res.json();
+          const jobId = job.job_id;
+          if (!jobId) throw new Error('Service did not return job ID.');
+
+          showToastLoading('Downloading PDF Report...', 'Fetching generated document...');
+          const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
+            credentials: 'same-origin'
+          });
+          if (!pdfResponse.ok) await readResponse(pdfResponse);
+          const blob = await pdfResponse.blob();
+
+          if (_activeBlobUrl) {
+            try { URL.revokeObjectURL(_activeBlobUrl); } catch (_) {}
+            _activeBlobUrl = null;
+          }
+          _activeBlobUrl = URL.createObjectURL(blob);
+
+          const fileName = job.download_filename || `${modeLabel}_Attendance_Report.pdf`;
+          const a = document.createElement('a');
+          a.href = _activeBlobUrl;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+
+          const viewUrl = `/api/web/reports/${encodeURIComponent(jobId)}/view`;
+          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, viewUrl);
+          showMessage(messageEl, 'Automated report loaded & downloaded successfully! No manual upload needed.', 'success', viewUrl, fileName);
+        } catch (err) {
+          showToastError('Report Generation Failed', err.message);
+          showMessage(messageEl, err.message, 'error');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      };
 
       // Tab switching inside report
       window.switchMonitoringTab = function(mode) {
@@ -1350,7 +1465,9 @@ def create_app(
                 "status": failed.status if failed else "Failed",
                 "message": safe_message,
             }) from None
-        response = JSONResponse(completed.public_dict())
+        resp_data = completed.public_dict()
+        resp_data["download_filename"] = _record_report_filename(completed)
+        response = JSONResponse(resp_data)
         response.set_cookie(
             WEB_JOB_COOKIE_NAME,
             _make_web_job_cookie(job_id),
@@ -1389,6 +1506,130 @@ def create_app(
     @api.get("/api/web/reports/{job_id}/view", include_in_schema=False)
     def view_web_report(job_id: str, request: Request) -> Response:
         return download_web_report(job_id, request, inline=True)
+
+    @api.post("/api/web/reports/auto-load", status_code=200, include_in_schema=False)
+    def auto_load_web_report(
+        request: Request,
+        report_mode: str = Form(default="district"),
+        mandal_name: str = Form(default=""),
+        requested_by: str = Form(default="Naresh Portal", alias="RequestedBy"),
+    ) -> JSONResponse:
+        candidate_paths = [
+            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
+            BASE_DIR / "bundled_raw_dsr.xls",
+            BASE_DIR / "bundled_allgpdata.xls",
+        ]
+        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
+        if not source_path:
+            raise HTTPException(status_code=404, detail="No automated DSR data file found.")
+
+        raw = source_path.read_bytes()
+        filename = source_path.name
+
+        p_path = BASE_DIR / "automate_epts" / "downloads" / "presentees.xls"
+        presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
+
+        a_path = BASE_DIR / "automate_epts" / "downloads" / "absentees.xls"
+        absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
+
+        job_id = uuid4().hex
+        record, _ = tracker.create(_new_record(job_id, filename, requested_by))
+        try:
+            completed = _process_job(
+                job_id,
+                (filename, raw),
+                presentees=presentees_data,
+                absentees=absentees_data,
+                report_mode=report_mode,
+                mandal_name=mandal_name,
+            )
+        except Exception as exc:
+            status_code, safe_message = _safe_error(exc)
+            failed = tracker.get(job_id)
+            raise HTTPException(status_code=status_code, detail={
+                "job_id": job_id,
+                "status": failed.status if failed else "Failed",
+                "message": safe_message,
+            }) from None
+
+        resp_data = completed.public_dict()
+        resp_data["download_filename"] = _record_report_filename(completed)
+        response = JSONResponse(resp_data)
+        response.set_cookie(
+            WEB_JOB_COOKIE_NAME,
+            _make_web_job_cookie(job_id),
+            max_age=WEB_JOB_TTL_SECONDS,
+            httponly=True,
+            secure=request.url.scheme == "https",
+            samesite="strict",
+            path="/api/web/reports",
+        )
+        return response
+
+    # -------------------------------------------------------------
+    # Naresh Automated DSR Portal Endpoints (/naresh)
+    # -------------------------------------------------------------
+    @api.get("/naresh", response_class=HTMLResponse, include_in_schema=False)
+    def naresh_page() -> HTMLResponse:
+        return HTMLResponse(NARESH_PAGE_HTML)
+
+    @api.get("/api/naresh/data", include_in_schema=False)
+    def naresh_api_data() -> dict[str, Any]:
+        candidate_paths = [
+            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
+            BASE_DIR / "bundled_raw_dsr.xls",
+            BASE_DIR / "bundled_allgpdata.xls",
+        ]
+        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
+        if not source_path:
+            raise HTTPException(status_code=404, detail="Automated data file not found.")
+
+        report = process_attendance_file(source_path.name, source_path.read_bytes())
+        return {
+            "district_name": report.district_name,
+            "report_date": f"{report.report_date:%d-%b-%Y}",
+            "totals": report.totals,
+            "mandal_rows": report.mandal_rows,
+        }
+
+    def _serve_naresh_pdf(inline: bool = True) -> Response:
+        candidate_paths = [
+            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
+            BASE_DIR / "bundled_raw_dsr.xls",
+            BASE_DIR / "bundled_allgpdata.xls",
+        ]
+        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
+        if not source_path:
+            raise HTTPException(status_code=404, detail="Automated data file not found.")
+
+        today_str = datetime.now().strftime("%d-%m-%Y")
+        cached_pdf = BASE_DIR / "automate_epts" / "downloads" / "Official_DSR_Report_02-11-2026.pdf"
+        if cached_pdf.exists() and cached_pdf.stat().st_size > 0:
+            pdf_bytes = cached_pdf.read_bytes()
+        else:
+            report = process_attendance_file(source_path.name, source_path.read_bytes())
+            tmp_pdf = BASE_DIR / "data" / "reports" / f"Khammam_Official_DSR_Report_{today_str}.pdf"
+            generate_pdf(report, tmp_pdf)
+            pdf_bytes = tmp_pdf.read_bytes()
+
+        disposition = "inline" if inline else "attachment"
+        filename = f"Khammam_Official_DSR_Report_{today_str}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
+        )
+
+    @api.get("/api/naresh/view", include_in_schema=False)
+    def naresh_view_pdf() -> Response:
+        return _serve_naresh_pdf(inline=True)
+
+    @api.get("/api/naresh/download", include_in_schema=False)
+    def naresh_download_pdf() -> Response:
+        return _serve_naresh_pdf(inline=False)
 
     # -------------------------------------------------------------
     # Tax DCB Consolidation & PDF Report Endpoints
