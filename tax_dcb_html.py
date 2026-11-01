@@ -809,8 +809,7 @@ TAX_PAGE_HTML = """<!doctype html>
       <a class="nav-brand" href="/">
         <span class="nav-brand-logo">🏛️</span>
         <div class="nav-brand-titles">
-          <span class="nav-brand-sup">Government of Telangana</span>
-          <span class="nav-brand-main">PR &amp; RD Analytics Portal</span>
+          <span class="nav-brand-main">Panchayat Raj Analytics Reports</span>
         </div>
       </a>
       <nav class="nav-menu">
@@ -1041,10 +1040,9 @@ TAX_PAGE_HTML = """<!doctype html>
                 </div>
               </div>
 
-              <!-- Bottom Middle: Overall DCB Breakdown Donut -->
-              <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:stretch;">
-                <div class="pbi-card-title" style="width:100%; text-align:left; margin-bottom:8px;">Overall DCB Breakdown</div>
-                <div style="flex:1; min-height:205px; max-height:205px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
+              <!-- Bottom Middle: DCB Breakdown Donut -->
+              <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:center; justify-content:center;">
+                <div style="flex:1; min-height:215px; max-height:215px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
                   <canvas id="chart-dist-donut"></canvas>
                 </div>
               </div>

@@ -136,26 +136,25 @@ def create_gauge_img(pct: float | int, title: str, title_col: str = "#DC2626", m
 
 
 def create_donut_img(demand: float, coll: float, bal: float) -> ImageReader:
-    """Render the DCB breakdown donut chart with clean title and non-overlapping legend."""
+    """Render the DCB breakdown donut chart with clean top legend."""
     fig, ax = plt.subplots(figsize=(2.5, 2.3), dpi=150)
     labels = ["Demand", "Collection", "Balance"]
     vals = [max(1.0, float(demand)), max(1.0, float(coll)), max(1.0, float(bal))]
     cols = ["#002060", "#008000", "#ED7D31"]
     wedges, _ = ax.pie(vals, colors=cols, startangle=90, wedgeprops=dict(width=0.45, edgecolor="w"))
-    fig.suptitle("Overall DCB Breakdown", fontsize=8.2, fontweight="bold", y=0.98)
     ax.legend(
         wedges,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.06),
+        bbox_to_anchor=(0.5, 1.15),
         ncol=3,
-        fontsize=6.5,
+        fontsize=6.8,
         frameon=False,
         handlelength=1.0,
-        handletextpad=0.3,
-        columnspacing=0.8,
+        handletextpad=0.35,
+        columnspacing=0.9,
     )
-    fig.subplots_adjust(top=0.84, bottom=0.04, left=0.04, right=0.96)
+    fig.subplots_adjust(top=0.92, bottom=0.04, left=0.04, right=0.96)
     buf = io.BytesIO()
     plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", transparent=True)
     plt.close(fig)

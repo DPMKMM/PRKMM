@@ -198,8 +198,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       <a class="nav-brand" href="#home" onclick="navigateTo('home')">
         <span class="nav-brand-logo">🏛️</span>
         <div class="nav-brand-titles">
-          <span class="nav-brand-sup">Government of Telangana</span>
-          <span class="nav-brand-main">PR &amp; RD Analytics Portal</span>
+          <span class="nav-brand-main">Panchayat Raj Analytics Reports</span>
         </div>
       </a>
       <nav class="nav-menu">
