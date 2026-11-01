@@ -51,22 +51,110 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PS Attendance Analytics · Telangana</title>
+  <title>Telangana PR &amp; RD · Executive Analytics Portal</title>
   <style>
-    :root { color-scheme: light; font-family: Inter, Segoe UI, Arial, sans-serif; }
-    body { margin: 0; background: #f3f7f5; color: #15332b; }
-    main { max-width: 840px; margin: 4vh auto; padding: 0 20px; }
-    .card { background: white; border: 1px solid #d9e6df; border-radius: 18px;
-      padding: clamp(24px, 5vw, 42px); box-shadow: 0 14px 40px #173b2b12; }
-    .eyebrow { color: #247558; font-weight: 700; letter-spacing: .08em;
-      text-transform: uppercase; font-size: .8rem; }
-    h1 { margin: 10px 0 6px; font-size: clamp(1.8rem, 4.5vw, 2.5rem); line-height: 1.15; }
+    :root { color-scheme: light; font-family: Inter, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Arial, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f3f7f5; color: #15332b; line-height: 1.5; }
+
+    /* Top Navigation Bar */
+    .navbar { position: sticky; top: 0; z-index: 1000; background: #0c3829; color: white; box-shadow: 0 2px 12px rgba(0,0,0,0.15); }
+    .nav-inner { max-width: 1080px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; color: white; cursor: pointer; }
+    .nav-brand-logo { font-size: 1.7rem; line-height: 1; }
+    .nav-brand-titles { display: flex; flex-direction: column; }
+    .nav-brand-sup { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8cd6b7; }
+    .nav-brand-main { font-size: 1.05rem; font-weight: 800; letter-spacing: -0.01em; color: #ffffff; }
+
+    .nav-menu { display: flex; align-items: center; gap: 6px; }
+    .nav-link { color: #d4e8de; text-decoration: none; padding: 8px 14px; font-weight: 600; font-size: 0.92rem; border-radius: 8px; transition: all 0.15s; cursor: pointer; }
+    .nav-link:hover { color: white; background: rgba(255,255,255,0.1); }
+    .nav-link.active { color: white; background: #167451; }
+
+    /* Submenu Dropdown */
+    .dropdown { position: relative; display: inline-block; }
+    .dropdown-btn { background: transparent; border: none; color: #d4e8de; padding: 8px 14px; font-weight: 600; font-size: 0.92rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; font-family: inherit; }
+    .dropdown-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+    .dropdown-btn.active { color: white; background: #167451; }
+    .caret { font-size: 0.75rem; transition: transform 0.2s; }
+    .dropdown:hover .caret, .dropdown.open .caret { transform: rotate(180deg); }
+
+    .dropdown-menu { display: none; position: absolute; top: calc(100% + 4px); right: 0; min-width: 320px; background: white; border: 1px solid #d9e6df; border-radius: 14px; box-shadow: 0 16px 36px rgba(12,56,41,0.18); padding: 8px; z-index: 1001; }
+    .dropdown:hover .dropdown-menu, .dropdown.open .dropdown-menu { display: block; animation: dropdownFade 0.15s ease-out; }
+    @keyframes dropdownFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+    .dropdown-header { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #5a7369; padding: 8px 12px 4px; }
+    .dropdown-divider { height: 1px; background: #e5eee9; margin: 6px 0; }
+    .dropdown-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 12px; border-radius: 9px; text-decoration: none; color: #15332b; transition: background 0.15s; cursor: pointer; }
+    .dropdown-item:hover { background: #f0f7f3; }
+    .dropdown-item-icon { font-size: 1.25rem; line-height: 1.2; flex-shrink: 0; }
+    .dropdown-item-content strong { display: block; font-size: 0.88rem; color: #15332b; font-weight: 700; }
+    .dropdown-item-content span { font-size: 0.78rem; color: #5a7369; line-height: 1.35; display: block; }
+    .dropdown-item.disabled { opacity: 0.65; cursor: not-allowed; background: transparent !important; }
+    .badge-soon { display: inline-block; font-size: 0.68rem; font-weight: 700; background: #fef3c7; color: #92400e; padding: 1px 6px; border-radius: 4px; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    /* Layout Container */
+    main { max-width: 1080px; margin: 30px auto 60px; padding: 0 20px; }
+    .page-view { display: none; }
+    .page-view.active { display: block; }
+
+    /* HOME VIEW STYLES */
+    .hero-banner { background: linear-gradient(135deg, #0d3d2c 0%, #167451 100%); color: white; border-radius: 20px; padding: clamp(28px, 5vw, 44px); box-shadow: 0 16px 40px rgba(12,56,41,0.16); margin-bottom: 28px; position: relative; overflow: hidden; }
+    .hero-banner::after { content: ""; position: absolute; right: -50px; bottom: -50px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); border-radius: 50%; pointer-events: none; }
+    .hero-badge { display: inline-block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #c4f2dc; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; margin-bottom: 12px; }
+    .hero-title { margin: 0 0 10px; font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+    .hero-desc { font-size: 1.02rem; line-height: 1.6; color: #e1f3ea; margin: 0 0 22px; max-width: 760px; }
+
+    .stats-ribbon { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-top: 24px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.2); }
+    .stat-item { background: rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; backdrop-filter: blur(4px); }
+    .stat-val { font-size: 1.5rem; font-weight: 800; color: white; display: block; }
+    .stat-lbl { font-size: 0.78rem; font-weight: 600; color: #bde5d2; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .section-heading { display: flex; align-items: baseline; justify-content: space-between; margin: 34px 0 16px; }
+    .section-heading h2 { margin: 0; font-size: 1.45rem; font-weight: 800; color: #15332b; letter-spacing: -0.01em; }
+    .section-heading span { font-size: 0.88rem; color: #5a7369; font-weight: 500; }
+
+    /* Module Cards Grid */
+    .modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .module-card { background: white; border: 1px solid #d9e6df; border-radius: 18px; padding: 24px; box-shadow: 0 10px 30px rgba(23,59,43,0.06); display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s; position: relative; }
+    .module-card:hover { transform: translateY(-3px); box-shadow: 0 16px 36px rgba(23,59,43,0.12); }
+    .module-card.active-module { border: 2px solid #167451; background: #ffffff; }
+
+    .module-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .module-icon-wrap { font-size: 2rem; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #eaf5ef; }
+    .module-badge { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 4px 8px; border-radius: 6px; }
+    .badge-live { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge-planned { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+
+    .module-card h3 { margin: 0 0 8px; font-size: 1.2rem; font-weight: 700; color: #15332b; }
+    .module-card p { font-size: 0.9rem; color: #4d665e; line-height: 1.55; margin: 0 0 18px; flex-grow: 1; }
+    .module-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+
+    .btn-action { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; font-size: 0.88rem; font-weight: 700; border-radius: 8px; text-decoration: none; cursor: pointer; border: none; font-family: inherit; transition: background 0.15s; }
+    .btn-primary { background: #167451; color: white; }
+    .btn-primary:hover { background: #125e41; }
+    .btn-secondary { background: #eaf5ef; color: #167451; border: 1px solid #b9ddcb; }
+    .btn-secondary:hover { background: #d7ede1; }
+    .btn-disabled { background: #f3f4f6; color: #9ca3af; cursor: not-allowed; border: 1px solid #e5e7eb; }
+
+    /* Guidelines Notice Card on Home */
+    .info-card { background: white; border: 1px solid #d9e6df; border-radius: 18px; padding: 26px; margin-top: 28px; box-shadow: 0 10px 30px rgba(23,59,43,0.05); }
+    .info-card h3 { margin: 0 0 12px; font-size: 1.15rem; color: #15332b; }
+    .guideline-list { margin: 0; padding-left: 20px; color: #486158; font-size: 0.92rem; line-height: 1.7; }
+
+    /* REPORT VIEW STYLES */
+    .breadcrumb-bar { margin-bottom: 16px; }
+    .back-btn { display: inline-flex; align-items: center; gap: 6px; color: #167451; text-decoration: none; font-weight: 700; font-size: 0.92rem; padding: 7px 14px; background: white; border: 1px solid #cfe0d7; border-radius: 8px; transition: background 0.15s; cursor: pointer; font-family: inherit; }
+    .back-btn:hover { background: #eaf5ef; }
+
+    .report-card { background: white; border: 1px solid #d9e6df; border-radius: 18px; padding: clamp(24px, 5vw, 42px); box-shadow: 0 14px 40px #173b2b12; max-width: 860px; margin: 0 auto; }
+    .eyebrow { color: #247558; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: .8rem; }
+    h1 { margin: 10px 0 6px; font-size: clamp(1.8rem, 4.5vw, 2.3rem); line-height: 1.15; }
     p.intro { line-height: 1.6; color: #486158; margin-top: 0; margin-bottom: 20px; }
     
-    /* Navigation Tabs */
+    /* Navigation Tabs inside report */
     .tabs-header { display: flex; gap: 8px; margin: 20px 0 24px; border-bottom: 2px solid #e1ebe5; }
-    .tab-btn { background: transparent; border: none; padding: 11px 20px; font-size: 0.98rem; font-weight: 700;
-      color: #5a7369; cursor: pointer; border-radius: 8px 8px 0 0; transition: all .15s; border-bottom: 3px solid transparent; margin-bottom: -2px; }
+    .tab-btn { background: transparent; border: none; padding: 11px 20px; font-size: 0.98rem; font-weight: 700; color: #5a7369; cursor: pointer; border-radius: 8px 8px 0 0; transition: all .15s; border-bottom: 3px solid transparent; margin-bottom: -2px; font-family: inherit; }
     .tab-btn:hover { color: #167451; background: #f0f7f3; }
     .tab-btn.active { color: #167451; border-bottom: 3px solid #167451; background: #eef6f2; }
 
@@ -80,106 +168,386 @@ UPLOAD_PAGE_HTML = """<!doctype html>
     .badge-rec { background: #e3f5eb; color: #167451; }
     .badge-opt { background: #fff3d6; color: #855c06; }
     .hint { font-size: 0.82rem; color: #5a7369; margin-top: 5px; line-height: 1.45; }
-    input[type="file"], input[type="text"], select { width: 100%;
-      box-sizing: border-box; padding: 11px 13px; border: 1px solid #bfd1c7;
-      border-radius: 9px; background: white; color: #15332b; font-size: 0.95rem; }
+    input[type="file"], input[type="text"], select { width: 100%; box-sizing: border-box; padding: 11px 13px; border: 1px solid #bfd1c7; border-radius: 9px; background: white; color: #15332b; font-size: 0.95rem; font-family: inherit; }
     input[type="file"] { background: #fbfdfc; }
-    select:disabled { background: #f4f6f5; color: #889990; cursor: not-allowed; }
-    button, a.button { display: inline-block; border: 0; border-radius: 10px;
-      background: #167451; color: white; padding: 13px 22px; font-weight: 700;
-      font-size: 1rem; text-decoration: none; cursor: pointer; transition: background .15s; }
-    button:hover { background: #125e41; }
-    button:disabled { opacity: .6; cursor: wait; }
+    button[type="submit"] { display: inline-block; border: 0; border-radius: 10px; background: #167451; color: white; padding: 13px 22px; font-weight: 700; font-size: 1rem; text-decoration: none; cursor: pointer; transition: background .15s; font-family: inherit; }
+    button[type="submit"]:hover { background: #125e41; }
+    button[type="submit"]:disabled { opacity: .6; cursor: wait; }
     .actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 24px; }
-    .notice { margin: 16px 0; padding: 12px 14px; border-radius: 10px;
-      background: #eef6f2; border-left: 4px solid #167451; color: #1b4938; line-height: 1.5; font-size: 0.88rem; }
+    .notice { margin: 16px 0; padding: 12px 14px; border-radius: 10px; background: #eef6f2; border-left: 4px solid #167451; color: #1b4938; line-height: 1.5; font-size: 0.88rem; }
     .message { min-height: 1.5em; margin-top: 14px; color: #8b2635; font-weight: 600; }
     .message.success { color: #176247; }
     .fine-print { border-top: 1px solid #e5eee9; margin-top: 26px; padding-top: 18px; font-size: 0.88rem; color: #627b72; line-height: 1.55; }
+
+    /* Footer */
+    footer { border-top: 1px solid #dce6e1; margin-top: 60px; padding: 22px 20px; text-align: center; color: #5a7369; font-size: 0.84rem; background: white; }
+
+    @media (max-width: 640px) {
+      .nav-brand-sup { display: none; }
+      .nav-menu { gap: 2px; }
+      .nav-link, .dropdown-btn { padding: 8px 10px; font-size: 0.85rem; }
+      .dropdown-menu { min-width: 270px; right: -30px; }
+      .hero-banner { padding: 22px; }
+      .stats-ribbon { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <a class="nav-brand" href="#home" onclick="navigateTo('home')">
+        <span class="nav-brand-logo">🏛️</span>
+        <div class="nav-brand-titles">
+          <span class="nav-brand-sup">Government of Telangana</span>
+          <span class="nav-brand-main">PR &amp; RD Analytics Portal</span>
+        </div>
+      </a>
+      <nav class="nav-menu">
+        <a class="nav-link active" id="nav-home" href="#home" onclick="navigateTo('home')">Home</a>
+        
+        <!-- Reports Submenu Dropdown -->
+        <div class="dropdown" id="reports-dropdown-container">
+          <button type="button" class="dropdown-btn" id="nav-reports-btn" onclick="toggleDropdown()">
+            Reports &amp; Analytics <span class="caret">▾</span>
+          </button>
+          <div class="dropdown-menu" id="reports-dropdown-menu">
+            <div class="dropdown-header">Active Reports</div>
+            <a class="dropdown-item" href="#reports-district" onclick="navigateTo('reports', 'district')">
+              <span class="dropdown-item-icon">🏢</span>
+              <div class="dropdown-item-content">
+                <strong>District Level Monitoring</strong>
+                <span>7-Section Comprehensive District PDF Report</span>
+              </div>
+            </a>
+            <a class="dropdown-item" href="#reports-mandal" onclick="navigateTo('reports', 'mandal')">
+              <span class="dropdown-item-icon">🏛️</span>
+              <div class="dropdown-item-content">
+                <strong>Mandal Level Monitoring</strong>
+                <span>Focused 2-Page Mandal Officer PDF Report</span>
+              </div>
+            </a>
+
+            <div class="dropdown-divider"></div>
+            <div class="dropdown-header">Upcoming Reporting Options</div>
+
+            <div class="dropdown-item disabled">
+              <span class="dropdown-item-icon">🏗️</span>
+              <div class="dropdown-item-content">
+                <strong>Panchayat Works &amp; Infrastructure</strong>
+                <span>CC Roads, Vaikunta Dhamams &amp; Rythu Vedikas</span>
+                <span class="badge-soon">Coming Soon</span>
+              </div>
+            </div>
+
+            <div class="dropdown-item disabled">
+              <span class="dropdown-item-icon">🚛</span>
+              <div class="dropdown-item-content">
+                <strong>Sanitation &amp; SWM Tracking</strong>
+                <span>Segregation Sheds, Tractors &amp; Waste Processing</span>
+                <span class="badge-soon">Coming Soon</span>
+              </div>
+            </div>
+
+            <div class="dropdown-item disabled">
+              <span class="dropdown-item-icon">💰</span>
+              <div class="dropdown-item-content">
+                <strong>GP Tax Collection &amp; Finances</strong>
+                <span>House Tax &amp; Non-Tax DCB Progress</span>
+                <span class="badge-soon">Coming Soon</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a class="nav-link" id="nav-guidelines" href="#guidelines" onclick="navigateTo('home', null, 'guidelines-section')">Guidelines</a>
+      </nav>
+    </div>
+  </header>
+
   <main>
-    <section class="card">
-      <div class="eyebrow" id="page-eyebrow">Telangana Panchayat Raj &amp; Rural Development</div>
-      <h1>PS Attendance &amp; DSR Analytics</h1>
-      <p class="intro">Generate official Gram Panchayat morning attendance and DSR analytics reports directly from your uploaded portal exports.</p>
-      
-      <!-- Top Level Tabs -->
-      <div class="tabs-header" role="tablist">
-        <button type="button" class="tab-btn active" id="tab-btn-district" onclick="switchMonitoringTab('district')">
-          🏢 District Level Monitoring
-        </button>
-        <button type="button" class="tab-btn" id="tab-btn-mandal" onclick="switchMonitoringTab('mandal')">
-          🏛️ Mandal Level Monitoring
-        </button>
+    <!-- VIEW 1: Home Dashboard -->
+    <div id="view-home" class="page-view active">
+      <section class="hero-banner">
+        <span class="hero-badge">Panchayat Raj &amp; Rural Development Department</span>
+        <h1 class="hero-title">Executive Monitoring &amp; Analytics Portal</h1>
+        <p class="hero-desc">
+          Official departmental analytics platform empowering District Collectors, DPOs, ZP CEOs, MPDOs, and MPOs with automated performance tracking, morning attendance compliance, and daily status analytics across Telangana.
+        </p>
+
+        <div class="stats-ribbon">
+          <div class="stat-item">
+            <span class="stat-val">33</span>
+            <span class="stat-lbl">Districts Supported</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">12,769+</span>
+            <span class="stat-lbl">Gram Panchayats</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">09:00 AM</span>
+            <span class="stat-lbl">Morning Cutoff Time</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-val">100%</span>
+            <span class="stat-lbl">Automated PDF Analytics</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="section-heading">
+        <h2>Departmental Reporting Modules</h2>
+        <span>Select an active module or explore upcoming tools</span>
       </div>
 
-      <!-- TAB 1: District Level Monitoring -->
-      <div id="tab-district" class="tab-content active">
-        <div class="notice">
-          <strong>District Monitoring:</strong> Automatically detects your District, all Mandals, and Gram Panchayats directly from the uploaded raw data file. When Presentees and Absentees files are provided, secretary details (Name, Mobile, Nature of Posting) are dynamically matched by LGD code.
+      <div class="modules-grid">
+        <!-- Module 1: PS Attendance & DSR Analytics (ACTIVE) -->
+        <div class="module-card active-module">
+          <div>
+            <div class="module-card-header">
+              <div class="module-icon-wrap">📋</div>
+              <span class="module-badge badge-live">● Active · Live</span>
+            </div>
+            <h3>PS Attendance &amp; DSR Analytics</h3>
+            <p>
+              Upload portal exports to verify Panchayat Secretary morning attendance and Daily Status Report (DSR) entries. Generates official executive PDF reports for District Officers and Mandal MPOs/MPDOs with late submissions (after 9 AM) highlighted in red.
+            </p>
+          </div>
+          <div class="module-actions">
+            <button type="button" class="btn-action btn-primary" onclick="navigateTo('reports', 'district')">
+              🏢 District Monitoring
+            </button>
+            <button type="button" class="btn-action btn-secondary" onclick="navigateTo('reports', 'mandal')">
+              🏛️ Mandal Monitoring
+            </button>
+          </div>
         </div>
 
-        <form id="upload-form" class="district-form">
-          <div class="field-group">
-            <label for="attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
-            <input id="attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
-            <div class="hint">Portal export containing District, Division, Mandal, Panchayat Name, LGD, First &amp; Second Attendance, and DSR Status.</div>
+        <!-- Module 2: Works & Infrastructure (Upcoming) -->
+        <div class="module-card">
+          <div>
+            <div class="module-card-header">
+              <div class="module-icon-wrap">🏗️</div>
+              <span class="module-badge badge-planned">Coming Soon</span>
+            </div>
+            <h3>Panchayat Works &amp; Infrastructure</h3>
+            <p>
+              Monitoring progress of Gram Panchayat infrastructure works including CC roads, internal drains, Vaikunta Dhamams, Rythu Vedikas, and administrative buildings with geo-tagged stage tracking.
+            </p>
           </div>
-
-          <div class="field-group">
-            <label for="presentees-file">2. Presentees PS Details File <span class="badge badge-rec">Recommended</span></label>
-            <input id="presentees-file" name="presentees_file" type="file" accept=".xls,.xlsx,.csv">
-            <div class="hint">Export of present secretaries with Panchayat LGD Code, PS Name, Designation, Nature of Posting, and Mobile Number.</div>
+          <div class="module-actions">
+            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
           </div>
-
-          <div class="field-group">
-            <label for="absentees-file">3. Absentees PS Details File <span class="badge badge-opt">Optional</span></label>
-            <input id="absentees-file" name="absentees_file" type="file" accept=".xls,.xlsx,.csv">
-            <div class="hint">Export of absent secretaries. Not required if all secretaries submitted attendance.</div>
-          </div>
-
-          <div class="actions">
-            <button id="generate-button" type="submit">Generate and download report</button>
-          </div>
-          <div id="report-message" class="message" role="status" aria-live="polite"></div>
-        </form>
-      </div>
-
-      <!-- TAB 2: Mandal Level Monitoring -->
-      <div id="tab-mandal" class="tab-content">
-        <div class="notice">
-          <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
         </div>
 
-        <form id="mandal-form">
-          <div class="field-group">
-            <label for="mandal-attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
-            <input id="mandal-attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
-            <div class="hint">Upload your attendance raw data file. Mandal name is auto-detected directly from the file.</div>
+        <!-- Module 3: Sanitation & SWM (Upcoming) -->
+        <div class="module-card">
+          <div>
+            <div class="module-card-header">
+              <div class="module-icon-wrap">🚛</div>
+              <span class="module-badge badge-planned">Coming Soon</span>
+            </div>
+            <h3>Sanitation &amp; SWM Tracking</h3>
+            <p>
+              Daily solid waste management analytics: segregation shed operations, wet and dry waste processing, tractor &amp; tri-wheeler collection rounds, and dump yard upkeep monitoring.
+            </p>
           </div>
+          <div class="module-actions">
+            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
+          </div>
+        </div>
 
-          <div class="field-group">
-            <label for="mandal-display">2. Uploaded Mandal</label>
-            <input id="mandal-display" type="text" readonly placeholder="Mandal name will appear here automatically after upload..." style="font-weight: 600; color: #167451; background: #fbfdfc;">
-            <input type="hidden" id="mandal-select" name="mandal_name">
-            <div class="hint" id="mandal-detect-hint">Mandal name detected from the uploaded raw data file.</div>
+        <!-- Module 4: Tax Collection (Upcoming) -->
+        <div class="module-card">
+          <div>
+            <div class="module-card-header">
+              <div class="module-icon-wrap">💰</div>
+              <span class="module-badge badge-planned">Coming Soon</span>
+            </div>
+            <h3>GP Tax Collection &amp; Finances</h3>
+            <p>
+              Real-time Demand, Collection, and Balance (DCB) monitoring for House Tax, trade licenses, non-tax revenue, and central/state finance grants across Gram Panchayats.
+            </p>
           </div>
-
-          <div class="actions">
-            <button id="mandal-generate-button" type="submit">Generate Mandal Report (PDF)</button>
+          <div class="module-actions">
+            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
           </div>
-          <div id="mandal-report-message" class="message" role="status" aria-live="polite"></div>
-        </form>
+        </div>
       </div>
 
-      <p class="fine-print">Supported formats: Excel (.xls, .xlsx), CSV, or portal HTML tables exported with a .xls extension. The PDF report downloads automatically once analytics finish.</p>
-    </section>
+      <!-- Guidelines Section -->
+      <section class="info-card" id="guidelines-section">
+        <h3>📌 Operational Guidelines for Officers</h3>
+        <ul class="guideline-list">
+          <li><strong>Data Cut-Off:</strong> Morning attendance should be submitted before <strong>09:00 AM</strong>. Attendance submitted after 9:00 AM is flagged in bold red text in all reports.</li>
+          <li><strong>DSR Reporting:</strong> Daily Status Reports (DSR) must be updated by eligible present secretaries. Pending DSRs are highlighted for supervisory follow-up.</li>
+          <li><strong>Universal District Compatibility:</strong> The portal automatically detects any Telangana District, Division, Mandal, and GP from the uploaded raw data file without manual configuration.</li>
+          <li><strong>Mandal Level Monitoring:</strong> Mandal officers only need to upload their <strong>RAW data file</strong>. The system auto-detects the Mandal and prepares a focused 2-page PDF report.</li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- VIEW 2: Report Tool (PS Attendance & DSR Analytics) -->
+    <div id="view-reports" class="page-view">
+      <div class="breadcrumb-bar">
+        <button type="button" class="back-btn" onclick="navigateTo('home')">
+          ← Back to Home Dashboard
+        </button>
+      </div>
+
+      <section class="report-card">
+        <div class="eyebrow" id="page-eyebrow">Telangana Panchayat Raj &amp; Rural Development</div>
+        <h1>PS Attendance &amp; DSR Analytics</h1>
+        <p class="intro">Generate official Gram Panchayat morning attendance and DSR analytics reports directly from your uploaded portal exports.</p>
+        
+        <!-- Top Level Tabs -->
+        <div class="tabs-header" role="tablist">
+          <button type="button" class="tab-btn active" id="tab-btn-district" onclick="switchMonitoringTab('district')">
+            🏢 District Level Monitoring
+          </button>
+          <button type="button" class="tab-btn" id="tab-btn-mandal" onclick="switchMonitoringTab('mandal')">
+            🏛️ Mandal Level Monitoring
+          </button>
+        </div>
+
+        <!-- TAB 1: District Level Monitoring -->
+        <div id="tab-district" class="tab-content active">
+          <div class="notice">
+            <strong>District Monitoring:</strong> Automatically detects your District, all Mandals, and Gram Panchayats directly from the uploaded raw data file. When Presentees and Absentees files are provided, secretary details (Name, Mobile, Nature of Posting) are dynamically matched by LGD code.
+          </div>
+
+          <form id="upload-form" class="district-form">
+            <div class="field-group">
+              <label for="attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
+              <input id="attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
+              <div class="hint">Portal export containing District, Division, Mandal, Panchayat Name, LGD, First &amp; Second Attendance, and DSR Status.</div>
+            </div>
+
+            <div class="field-group">
+              <label for="presentees-file">2. Presentees PS Details File <span class="badge badge-rec">Recommended</span></label>
+              <input id="presentees-file" name="presentees_file" type="file" accept=".xls,.xlsx,.csv">
+              <div class="hint">Export of present secretaries with Panchayat LGD Code, PS Name, Designation, Nature of Posting, and Mobile Number.</div>
+            </div>
+
+            <div class="field-group">
+              <label for="absentees-file">3. Absentees PS Details File <span class="badge badge-opt">Optional</span></label>
+              <input id="absentees-file" name="absentees_file" type="file" accept=".xls,.xlsx,.csv">
+              <div class="hint">Export of absent secretaries. Not required if all secretaries submitted attendance.</div>
+            </div>
+
+            <div class="actions">
+              <button id="generate-button" type="submit">Generate and download report</button>
+            </div>
+            <div id="report-message" class="message" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <!-- TAB 2: Mandal Level Monitoring -->
+        <div id="tab-mandal" class="tab-content">
+          <div class="notice">
+            <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
+          </div>
+
+          <form id="mandal-form">
+            <div class="field-group">
+              <label for="mandal-attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
+              <input id="mandal-attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
+              <div class="hint">Upload your attendance raw data file. Mandal name is auto-detected directly from the file.</div>
+            </div>
+
+            <div class="field-group">
+              <label for="mandal-display">2. Uploaded Mandal</label>
+              <input id="mandal-display" type="text" readonly placeholder="Mandal name will appear here automatically after upload..." style="font-weight: 600; color: #167451; background: #fbfdfc;">
+              <input type="hidden" id="mandal-select" name="mandal_name">
+              <div class="hint" id="mandal-detect-hint">Mandal name detected from the uploaded raw data file.</div>
+            </div>
+
+            <div class="actions">
+              <button id="mandal-generate-button" type="submit">Generate Mandal Report (PDF)</button>
+            </div>
+            <div id="mandal-report-message" class="message" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <p class="fine-print">Supported formats: Excel (.xls, .xlsx), CSV, or portal HTML tables exported with a .xls extension. The PDF report downloads automatically once analytics finish.</p>
+      </section>
+    </div>
   </main>
+
+  <footer>
+    Government of Telangana · Panchayat Raj &amp; Rural Development Department · Executive Analytics &amp; Monitoring Portal
+  </footer>
+
   <script>
     (() => {
-      // Tab switching
+      // View Navigation
+      window.navigateTo = function(view, tab, anchor) {
+        const homeView = document.getElementById('view-home');
+        const reportsView = document.getElementById('view-reports');
+        const navHome = document.getElementById('nav-home');
+        const navReportsBtn = document.getElementById('nav-reports-btn');
+        closeDropdown();
+
+        if (view === 'reports') {
+          homeView.classList.remove('active');
+          reportsView.classList.add('active');
+          navHome.classList.remove('active');
+          navReportsBtn.classList.add('active');
+          if (tab) {
+            window.switchMonitoringTab(tab);
+            window.location.hash = `#reports-${tab}`;
+          } else {
+            window.location.hash = '#reports';
+          }
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          reportsView.classList.remove('active');
+          homeView.classList.add('active');
+          navHome.classList.add('active');
+          navReportsBtn.classList.remove('active');
+          if (anchor) {
+            window.location.hash = `#${anchor}`;
+            const el = document.getElementById(anchor);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          } else {
+            window.location.hash = '#home';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }
+      };
+
+      // Dropdown toggle
+      const dropdownContainer = document.getElementById('reports-dropdown-container');
+      window.toggleDropdown = function() {
+        dropdownContainer.classList.toggle('open');
+      };
+      function closeDropdown() {
+        dropdownContainer.classList.remove('open');
+      }
+      document.addEventListener('click', (e) => {
+        if (!dropdownContainer.contains(e.target)) {
+          closeDropdown();
+        }
+      });
+
+      // Hash routing
+      function handleHash() {
+        const hash = window.location.hash.toLowerCase();
+        if (hash.startsWith('#reports-mandal')) {
+          window.navigateTo('reports', 'mandal');
+        } else if (hash.startsWith('#reports-district')) {
+          window.navigateTo('reports', 'district');
+        } else if (hash.startsWith('#reports')) {
+          window.navigateTo('reports');
+        } else if (hash === '#guidelines' || hash === '#guidelines-section') {
+          window.navigateTo('home', null, 'guidelines-section');
+        } else {
+          window.navigateTo('home');
+        }
+      }
+      window.addEventListener('hashchange', handleHash);
+
+      // Tab switching inside report
       window.switchMonitoringTab = function(mode) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -314,6 +682,8 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         runReportJob(data, document.getElementById('mandal-generate-button'), document.getElementById('mandal-report-message'), `${mandalName || 'Mandal'}_Attendance_Report.pdf`);
       });
 
+      // Handle initial route on page load
+      handleHash();
     })();
   </script>
 </body>
@@ -435,6 +805,10 @@ def create_app(
 
     @api.get("/", response_class=HTMLResponse, include_in_schema=False)
     def home() -> HTMLResponse:
+        return HTMLResponse(UPLOAD_PAGE_HTML)
+
+    @api.get("/reports/ps-attendance", response_class=HTMLResponse, include_in_schema=False)
+    def ps_attendance_page() -> HTMLResponse:
         return HTMLResponse(UPLOAD_PAGE_HTML)
 
     @api.middleware("http")
