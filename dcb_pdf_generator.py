@@ -427,6 +427,7 @@ def generate_dcb_pdf(
                     textColor=colors.HexColor(row_fg_hex),
                 )
 
+                row_idx = len(table_data)
                 row = [
                     Paragraph(str(s_no), cur_cell_center),
                     Paragraph(r.get("mandal", ""), cur_cell_left),
@@ -440,11 +441,11 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_current", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_total", 0)), cur_cell_right),
-                    make_pct_flowable(pct_val, h_row, f_sz),
+                    Paragraph(str(pct_val), row_pct_style),
                 ]
-                row_idx = len(table_data)
                 table_data.append(row)
                 row_heights.append(h_row)
+                table_styles.append(("BACKGROUND", (12, row_idx), (12, row_idx), colors.HexColor(row_bg_hex)))
 
             if is_last_chunk_of_mandal:
                 tot_idx = len(table_data)
@@ -461,11 +462,12 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(tot_b_arr), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_cur), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_tot), tot_cell_num),
-                    make_pct_flowable(tot_pct, h_row, f_sz),
+                    Paragraph(str(tot_pct), tot_pct_style),
                 ]
                 table_data.append(cur_total_row)
                 row_heights.append(h_row)
                 table_styles.append(("SPAN", (0, tot_idx), (1, tot_idx)))  # Span S.No and Mandal Name
+                table_styles.append(("BACKGROUND", (12, tot_idx), (12, tot_idx), colors.HexColor(tot_bg_hex)))
 
             t = Table(table_data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)
             t.setStyle(TableStyle(table_styles))

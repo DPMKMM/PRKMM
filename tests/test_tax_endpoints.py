@@ -77,3 +77,24 @@ def test_tax_csv_download_endpoint():
     assert "text/csv" in resp.headers["content-type"]
     lines = resp.text.splitlines()
     assert len(lines) > 500
+
+
+def test_power_bi_visual_report_html_elements():
+    resp = client.get("/reports/tax-dcb?district=Khammam")
+    assert resp.status_code == 200
+    html = resp.text
+    # Verify Power BI elements
+    assert "pbi-district-view" in html
+    assert "pbi-mandal-view" in html
+    assert "pbi-dist-table" in html
+    assert "pbi-mandal-table" in html
+    assert "chart-dist-clustered" in html
+    assert "chart-dist-ranking" in html
+    assert "chart-dist-donut" in html
+    assert "svg-dist-gauge" in html
+    assert "chart-mandal-ranking" in html
+    assert "chart-mandal-dcb" in html
+    assert "svg-mandal-gauge" in html
+    assert "downloadPowerBiPdf" in html
+    assert "Download Power BI Report (PDF)" in html
+    assert "pbi-mandal-slicer-select" in html

@@ -7,6 +7,7 @@ TAX_PAGE_HTML = """<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Telangana ePanchayat · House Tax DCB Consolidation</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -484,153 +485,228 @@ TAX_PAGE_HTML = """<!doctype html>
 
     /* Power BI Executive Visual Report Styles */
     .pbi-container {
-      background: white;
-      border: 1px solid #d9e6df;
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 6px 20px rgba(23,59,43,0.05);
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
       margin-bottom: 30px;
     }
-    .pbi-header {
+    .pbi-toolbar-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
       gap: 12px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #e5ede8;
-      margin-bottom: 20px;
-    }
-    .pbi-title {
-      font-size: 1.35rem;
-      font-weight: 850;
-      color: #0d3d2c;
-      letter-spacing: -0.01em;
-      text-transform: uppercase;
-    }
-    .pbi-header-tools {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #cbd5e1;
     }
     .pbi-badge {
       display: inline-block;
-      background: #eef7f3;
-      color: #167451;
-      border: 1px solid #c2e2d3;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
       padding: 4px 10px;
       border-radius: 6px;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 750;
       letter-spacing: 0.04em;
     }
-    .pbi-grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 18px;
-    }
-    .pbi-card {
-      background: #fafcfb;
-      border: 1px solid #e1ebe5;
-      border-radius: 10px;
+    .pbi-canvas-card {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
       padding: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    /* District Header Banner (Page 1) */
+    .pbi-banner-district {
+      background: #D2E3FC;
+      border: 1.5px solid #85AEE0;
+      border-radius: 4px;
+      padding: 12px 20px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .pbi-banner-district-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #0f172a;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    /* Mandal Header Banner (Page 2) */
+    .pbi-banner-mandal {
+      background: #FEF9C3;
+      border: 1.5px solid #FACC15;
+      border-radius: 4px;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .pbi-banner-mandal-title {
+      font-size: 1.30rem;
+      font-weight: 900;
+      color: #DC2626;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+    .pbi-slicer-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pbi-slicer-select {
+      background: #ffffff;
+      border: 1.5px solid #94A3B8;
+      border-radius: 4px;
+      padding: 5px 12px;
+      font-size: 0.90rem;
+      font-weight: 700;
+      color: #0f172a;
+      outline: none;
+      cursor: pointer;
+    }
+    .pbi-slicer-select:focus {
+      border-color: #0284c7;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+    }
+    /* Cards inside PBI Canvas */
+    .pbi-card {
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
       display: flex;
       flex-direction: column;
     }
     .pbi-card-title {
-      font-size: 0.88rem;
-      font-weight: 750;
-      color: #1a4234;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #e8f0ec;
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #f1f5f9;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     }
-    .pbi-table-card {
-      grid-column: span 6;
-      min-height: 400px;
-    }
-    .pbi-chart-card-top {
-      grid-column: span 6;
-      min-height: 400px;
-    }
-    .pbi-chart-card-bottom-left {
-      grid-column: span 5;
-      min-height: 320px;
-    }
-    .pbi-chart-card-bottom-mid {
-      grid-column: span 4;
-      min-height: 320px;
-    }
-    .pbi-gauge-card {
-      grid-column: span 3;
-      min-height: 320px;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-    }
+    /* Table Styling */
     .pbi-table-wrap {
       overflow-y: auto;
-      max-height: 340px;
+      overflow-x: auto;
+      width: 100%;
     }
     .pbi-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.82rem;
+      font-size: 0.80rem;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     }
     .pbi-table th {
       position: sticky;
       top: 0;
-      background: #eef6f2;
-      color: #173b2b;
-      font-weight: 750;
-      padding: 8px 10px;
-      border-bottom: 2px solid #cbdcd2;
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: 800;
+      padding: 6px 8px;
+      border: 1px solid #cbd5e1;
       text-align: left;
+      font-size: 0.78rem;
+      z-index: 5;
     }
     .pbi-table td {
-      padding: 7px 10px;
-      border-bottom: 1px solid #edf4f0;
+      padding: 5px 8px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
     }
     .pbi-table tbody tr:hover {
-      background: #f0f7f3;
+      background: #f8fafc;
     }
-    .pbi-chart-wrap {
+    /* Power BI Data Bars */
+    .pbi-databar-td {
       position: relative;
-      flex: 1;
-      width: 100%;
-      min-height: 250px;
+      padding: 3px 6px !important;
+      text-align: right;
+      min-width: 85px;
     }
+    .pbi-databar-wrap {
+      position: relative;
+      width: 100%;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 6px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .pbi-databar-fill {
+      position: absolute;
+      left: 0;
+      top: 1px;
+      bottom: 1px;
+      background: #3B82F6;
+      opacity: 0.65;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .pbi-databar-val {
+      position: relative;
+      z-index: 2;
+      font-weight: 850;
+      font-size: 0.78rem;
+      color: #0f172a;
+    }
+    /* SVG Gauge */
     .gauge-svg {
       width: 100%;
-      max-width: 220px;
+      max-width: 250px;
       height: auto;
       display: block;
       margin: 0 auto;
     }
-    .gauge-value {
-      font-size: 1.85rem;
-      font-weight: 850;
-      color: #0f3d2c;
-      margin-top: -12px;
-      letter-spacing: -0.02em;
-    }
-    .gauge-target {
-      font-size: 0.76rem;
-      color: #557267;
-      margin-top: 4px;
-      font-weight: 600;
-    }
     @media (max-width: 1024px) {
-      .pbi-table-card, .pbi-chart-card-top, .pbi-chart-card-bottom-left, .pbi-chart-card-bottom-mid, .pbi-gauge-card {
-        grid-column: span 12 !important;
+      .pbi-row {
+        flex-direction: column !important;
       }
     }
-
-    @media (max-width: 768px) {
-      .hero-strip { padding: 18px; }
-      .hero-info h1 { font-size: 1.3rem; }
-      .pdf-iframe { height: 500px; }
+    @media print {
+      body { background: white !important; margin: 0 !important; padding: 0 !important; }
+      .navbar, .hero-strip, .controls-card, .kpi-grid, .tabs-wrap, #pane-pdf, #pane-abstract, #pane-detail, .pbi-toolbar-bar, #status-box, footer {
+        display: none !important;
+      }
+      #pane-visual {
+        display: block !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .pbi-container {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+      }
+      #pbi-canvas-export {
+        display: block !important;
+        padding: 0 !important;
+        width: 100% !important;
+      }
+      .pbi-table-wrap {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 8mm;
+      }
     }
   </style>
 </head>
@@ -695,8 +771,11 @@ TAX_PAGE_HTML = """<!doctype html>
       </div>
 
       <div class="actions-bar" id="actions-bar" style="display: none;">
+        <button type="button" id="btn-download-pbi-pdf" class="btn btn-primary" onclick="downloadPowerBiPdf()" style="display:flex; align-items:center; gap:6px;">
+          📥 Download Power BI Report (PDF)
+        </button>
         <a id="btn-download-pdf" href="#" class="btn btn-pdf" download>
-          📥 Download PDF Report
+          📄 Download Official PDF Report
         </a>
         <a id="btn-download-excel" href="#" class="btn btn-secondary" download>
           📊 Download Consolidated Excel (.xlsx)
@@ -746,11 +825,11 @@ TAX_PAGE_HTML = """<!doctype html>
 
     <!-- Navigation Tabs -->
     <div class="tabs-wrap">
-      <button type="button" class="tab-item active" onclick="switchTab('pdf')">
-        📄 Official PDF Report Viewer
-      </button>
-      <button type="button" class="tab-item" onclick="switchTab('visual')" id="tab-btn-visual">
+      <button type="button" class="tab-item active" onclick="switchTab('visual')" id="tab-btn-visual">
         📊 Executive Visual Report (Power BI View)
+      </button>
+      <button type="button" class="tab-item" onclick="switchTab('pdf')" id="tab-btn-pdf">
+        📄 Official Landscape PDF Viewer
       </button>
       <button type="button" class="tab-item" onclick="switchTab('abstract')">
         🏛️ Mandal Wise Consolidated Abstract
@@ -761,7 +840,7 @@ TAX_PAGE_HTML = """<!doctype html>
     </div>
 
     <!-- PANE 1: Embedded PDF Viewer -->
-    <div id="pane-pdf" class="tab-pane active">
+    <div id="pane-pdf" class="tab-pane">
       <div class="pdf-viewer-card">
         <div class="pdf-toolbar" id="pdf-toolbar" style="display: none;">
           <div class="pdf-toolbar-info">
@@ -788,91 +867,179 @@ TAX_PAGE_HTML = """<!doctype html>
     </div>
 
     <!-- PANE 2: Executive Visual Report (Power BI Canvas) -->
-    <div id="pane-visual" class="tab-pane">
+    <div id="pane-visual" class="tab-pane active">
       <div class="pbi-container">
-        <!-- Power BI Header -->
-        <div class="pbi-header">
-          <div>
-            <div class="pbi-title" id="pbi-header-title">DEMAND, COLLECTION, BALANCE OF KHAMMAM DISTRICT</div>
-            <div style="font-size:0.84rem; color:#557267; margin-top:3px;">
-              Interactive Visual Analytics modeled from District Power BI Executive Dashboard
-            </div>
-          </div>
-          <div class="pbi-header-tools">
+        <!-- Power BI Toolbar Strip -->
+        <div class="pbi-toolbar-bar">
+          <div style="display:flex; align-items:center; gap:10px;">
             <span class="pbi-badge">Power BI Architecture</span>
-            <button type="button" class="btn btn-outline" style="padding:6px 14px; font-size:0.82rem;" onclick="window.print()">
+            <span id="pbi-view-indicator" style="font-size:0.86rem; font-weight:750; color:#1e293b;">--</span>
+          </div>
+          <div class="pbi-header-tools" style="display:flex; align-items:center; gap:8px;">
+            <button type="button" class="btn btn-primary" style="padding:6px 14px; font-size:0.82rem; display:flex; align-items:center; gap:6px;" onclick="downloadPowerBiPdf()">
+              📥 Download Power BI PDF
+            </button>
+            <button type="button" class="btn btn-outline" style="padding:6px 12px; font-size:0.82rem;" onclick="window.print()">
               🖨️ Print Dashboard
             </button>
           </div>
         </div>
 
+        <!-- Initial Placeholder when District is not generated yet -->
         <div id="pbi-placeholder" style="text-align:center; padding:70px 20px; color:#557267;">
           <div style="font-size:3.2rem; margin-bottom:12px;">📊</div>
           <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:8px; color:#173b2b;">Please Select a District</h3>
           <p style="max-width:520px; margin:0 auto; font-size:0.92rem; line-height:1.5; color:#557267;">
-            Select a District and click <strong>⚡ Generate Report</strong> to load the full Power BI style interactive charts and visual analytics.
+            Select a District (and optionally a Mandal) above, then click <strong>⚡ Generate Report</strong> to load the full Power BI style interactive report and charts.
           </p>
         </div>
 
-        <div id="pbi-content" style="display:none;">
-          <!-- Power BI Grid -->
-          <div class="pbi-grid">
-            <!-- Top Row Left: Summary Table with DataBars -->
-            <div class="pbi-card pbi-table-card">
-              <div class="pbi-card-title" id="pbi-table-title">Summary DCB Table (with Data Bars)</div>
-              <div class="pbi-table-wrap">
-                <table class="pbi-table" id="pbi-summary-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th class="num-cell">Demand (₹)</th>
-                      <th class="num-cell">Collection (₹)</th>
-                      <th class="num-cell">Balance (₹)</th>
-                      <th class="center-cell" style="width:90px;">% Coll (Bar)</th>
-                    </tr>
-                  </thead>
-                  <tbody id="pbi-table-body">
-                  </tbody>
-                </table>
+        <!-- Exportable Power BI Canvas Container -->
+        <div id="pbi-canvas-export" style="display:none; background:#ffffff; border-radius:8px; padding:8px;">
+          
+          <!-- ======================================================== -->
+          <!-- LAYOUT 1: DISTRICT LEVEL REPORT (Page 1 of Power BI)   -->
+          <!-- ======================================================== -->
+          <div id="pbi-district-view" style="display:none;">
+            <!-- Header Banner (Soft Blue #D2E3FC) -->
+            <div class="pbi-banner-district">
+              <div class="pbi-banner-district-title" id="pbi-dist-banner-title">
+                DEMAND, COLLECTION, BALANCE OF KHAMMAM DISTRICT
               </div>
             </div>
 
-            <!-- Top Row Right: Clustered Column Chart (Demand vs Collection vs Balance) -->
-            <div class="pbi-card pbi-chart-card-top">
-              <div class="pbi-card-title">Demand, Collection &amp; Balance Comparison (Clustered Column)</div>
-              <div class="pbi-chart-wrap">
-                <canvas id="chart-clustered-dcb"></canvas>
+            <!-- Top Row: Mandal Table (Left) + Clustered DCB by Mandal (Right) -->
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+              <!-- Left: Mandal DCB Summary Table with Data Bars -->
+              <div class="pbi-card" style="flex:1 1 48%; min-width:0; padding:10px;">
+                <div class="pbi-table-wrap" style="max-height:430px; overflow-y:auto;">
+                  <table class="pbi-table" id="pbi-dist-table">
+                    <thead>
+                      <tr>
+                        <th style="width:23%;">Mandal Name</th>
+                        <th class="num-cell" style="width:13%;">No of GPs</th>
+                        <th class="num-cell" style="width:16%;">Demand</th>
+                        <th class="num-cell" style="width:16%;">Collection</th>
+                        <th class="num-cell" style="width:16%;">Balance</th>
+                        <th class="num-cell" style="width:16%;">Collection % ▴</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pbi-dist-table-body">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Right: Demand, Collection and Balance by Mandal Clustered Column Chart -->
+              <div class="pbi-card" style="flex:1 1 52%; min-width:0; padding:10px;">
+                <div class="pbi-card-title">Demand, Collection and Balance by Mandal</div>
+                <div style="flex:1; min-height:380px; position:relative;">
+                  <canvas id="chart-dist-clustered"></canvas>
+                </div>
               </div>
             </div>
 
-            <!-- Bottom Row Left: Collection % Ranking Column Chart -->
-            <div class="pbi-card pbi-chart-card-bottom-left">
-              <div class="pbi-card-title">Collection % Performance Ranking</div>
-              <div class="pbi-chart-wrap">
-                <canvas id="chart-pct-ranking"></canvas>
+            <!-- Bottom Row: Percentage Ranking (Left) + Donut (Mid) + Gauge (Right) -->
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+              <!-- Bottom Left: PERCENTAGE OF COLLECTION BY MANDAL -->
+              <div class="pbi-card" style="flex:1 1 45%; min-width:0; padding:10px;">
+                <div class="pbi-card-title">PERCENTAGE OF COLLECTION BY MANDAL</div>
+                <div style="flex:1; min-height:280px; position:relative;">
+                  <canvas id="chart-dist-ranking"></canvas>
+                </div>
               </div>
-            </div>
 
-            <!-- Bottom Row Middle: Overall DCB Distribution Donut Chart -->
-            <div class="pbi-card pbi-chart-card-bottom-mid">
-              <div class="pbi-card-title">Overall DCB Distribution</div>
-              <div class="pbi-chart-wrap" style="display:flex; align-items:center; justify-content:center;">
-                <canvas id="chart-dcb-pie"></canvas>
+              <!-- Bottom Middle: Overall DCB Breakdown Donut -->
+              <div class="pbi-card" style="flex:1 1 27%; min-width:0; padding:10px; align-items:center;">
+                <div class="pbi-card-title" style="width:100%; text-align:left;">Overall DCB Breakdown</div>
+                <div style="flex:1; min-height:280px; width:100%; display:flex; align-items:center; justify-content:center; position:relative;">
+                  <canvas id="chart-dist-donut"></canvas>
+                </div>
               </div>
-            </div>
 
-            <!-- Bottom Row Right: Speedometer Gauge Meter -->
-            <div class="pbi-card pbi-gauge-card">
-              <div class="pbi-card-title">Collection % Gauge Meter</div>
-              <div class="pbi-gauge-wrap" style="width:100%; display:flex; flex-direction:column; align-items:center;">
-                <svg id="pbi-gauge-svg" viewBox="0 0 200 130" class="gauge-svg">
-                  <!-- SVG Arc and Needle -->
-                </svg>
-                <div class="gauge-value" id="pbi-gauge-value">--%</div>
-                <div class="gauge-target">Target: 100% · <span id="pbi-gauge-status">--</span></div>
+              <!-- Bottom Right: DISTRICT TAX COLLECTION % Gauge -->
+              <div class="pbi-card" style="flex:1 1 28%; min-width:0; padding:12px; align-items:center; justify-content:center;">
+                <div style="color:#DC2626; font-weight:850; font-size:1.05rem; margin-bottom:6px; text-align:center; letter-spacing:0.02em;">
+                  DISTRICT TAX COLLECTION %
+                </div>
+                <div style="width:100%; max-width:270px; margin:0 auto; text-align:center;">
+                  <svg id="svg-dist-gauge" viewBox="0 0 200 135" class="gauge-svg"></svg>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- ======================================================== -->
+          <!-- LAYOUT 2: MANDAL LEVEL REPORT (Pages 2-21 of Power BI) -->
+          <!-- ======================================================== -->
+          <div id="pbi-mandal-view" style="display:none;">
+            <!-- Header Banner (Soft Yellow #FEF9C3 with Red Title & Slicer) -->
+            <div class="pbi-banner-mandal">
+              <div class="pbi-banner-mandal-title" id="pbi-mandal-banner-title">
+                DEMAND - COLLECTION - BALANCE OF BONAKAL MANDAL
+              </div>
+              <div class="pbi-slicer-container">
+                <select id="pbi-mandal-slicer-select" class="pbi-slicer-select" onchange="onPbiMandalSlicerSelect(this.value)">
+                  <!-- Options filled dynamically -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Two-Column Layout (38% Left / 62% Right) -->
+            <div class="pbi-row" style="display:flex; gap:12px; margin-top:12px;">
+              <!-- Left Column: GP Table (Top) + MANDAL % Gauge (Bottom) -->
+              <div style="flex:1 1 38%; min-width:0; display:flex; flex-direction:column; gap:12px;">
+                <!-- GP DCB Table with Data Bars -->
+                <div class="pbi-card" style="padding:10px;">
+                  <div class="pbi-table-wrap" style="max-height:430px; overflow-y:auto;">
+                    <table class="pbi-table" id="pbi-mandal-table">
+                      <thead>
+                        <tr>
+                          <th style="width:30%;">Panchayat</th>
+                          <th class="num-cell" style="width:18%;">Demand</th>
+                          <th class="num-cell" style="width:18%;">Collection</th>
+                          <th class="num-cell" style="width:18%;">Balance</th>
+                          <th class="num-cell" style="width:16%;">Collection % ▴</th>
+                        </tr>
+                      </thead>
+                      <tbody id="pbi-mandal-table-body">
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- MANDAL % Gauge -->
+                <div class="pbi-card" style="padding:12px; align-items:center; justify-content:center;">
+                  <div style="color:#0F172A; font-weight:850; font-size:1.05rem; margin-bottom:6px; text-align:center; letter-spacing:0.02em;">
+                    MANDAL %
+                  </div>
+                  <div style="width:100%; max-width:270px; margin:0 auto; text-align:center;">
+                    <svg id="svg-mandal-gauge" viewBox="0 0 200 135" class="gauge-svg"></svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: GP Wise Collection % (Top) + Panchayat wise DCB (Bottom) -->
+              <div style="flex:1 1 62%; min-width:0; display:flex; flex-direction:column; gap:12px;">
+                <!-- Top Chart: GP Wise Collection percentage -->
+                <div class="pbi-card" style="padding:10px;">
+                  <div class="pbi-card-title">GP Wise Collection percentage</div>
+                  <div style="flex:1; min-height:280px; position:relative;">
+                    <canvas id="chart-mandal-ranking"></canvas>
+                  </div>
+                </div>
+
+                <!-- Bottom Chart: Panchayat wise Demand, Collection and Balance -->
+                <div class="pbi-card" style="padding:10px;">
+                  <div class="pbi-card-title">Panchayat wise Demand, Collection and Balance</div>
+                  <div style="flex:1; min-height:300px; position:relative;">
+                    <canvas id="chart-mandal-dcb"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1130,8 +1297,8 @@ TAX_PAGE_HTML = """<!doctype html>
 
       const pbiPlaceholder = document.getElementById('pbi-placeholder');
       if (pbiPlaceholder) pbiPlaceholder.style.display = 'none';
-      const pbiContent = document.getElementById('pbi-content');
-      if (pbiContent) pbiContent.style.display = 'block';
+      const pbiCanvasExport = document.getElementById('pbi-canvas-export');
+      if (pbiCanvasExport) pbiCanvasExport.style.display = 'block';
 
       updateActionLinks();
       await loadData(dist);
@@ -1188,230 +1355,425 @@ TAX_PAGE_HTML = """<!doctype html>
       }
     }
 
-    let chartClustered = null;
-    let chartRanking = null;
-    let chartPie = null;
-
-    function updateGaugeMeter(pct) {
-      const p = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
-      const gaugeValEl = document.getElementById('pbi-gauge-value');
-      if (gaugeValEl) gaugeValEl.textContent = p + '%';
-      
-      let statusText = 'Low Collection';
-      let statusCol = '#DC2626';
-      if (p >= 70) {
-        statusText = 'Excellent (Target Met)';
-        statusCol = '#16A34A';
-      } else if (p >= 40) {
-        statusText = 'Moderate (In Progress)';
-        statusCol = '#EAB308';
-      } else {
-        statusText = 'Critical / Low Collection';
-        statusCol = '#DC2626';
+    const pbiDataLabelsPlugin = {
+      id: 'pbiDataLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, i) => {
+          if (dataset.hideDataLabels) return;
+          const meta = chart.getDatasetMeta(i);
+          meta.data.forEach((bar, index) => {
+            const val = dataset.data[index];
+            if (val === undefined || val === null) return;
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 9px system-ui, -apple-system, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(String(val), bar.x, bar.y - 3);
+            ctx.restore();
+          });
+        });
       }
-      const statusEl = document.getElementById('pbi-gauge-status');
-      if (statusEl) {
-        statusEl.textContent = statusText;
-        statusEl.style.color = statusCol;
+    };
+
+    function drawPbiGauge(svgId, percentage, titleText, titleColor, minText, maxText) {
+      const p = Math.max(0, Math.min(100, Number(percentage) || 0));
+      const r = 75;
+      const semiCirc = Math.PI * r; // ~235.62
+      const offset = semiCirc * (1.0 - p / 100.0);
+
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+
+      svg.innerHTML = `
+        <!-- Background Track -->
+        <path d="M 25 110 A 75 75 0 0 1 175 110" fill="none" stroke="#E9EDF2" stroke-width="22" stroke-linecap="butt"/>
+        <!-- Blue Progress Arc -->
+        <path d="M 25 110 A 75 75 0 0 1 175 110" fill="none" stroke="#0078D4" stroke-width="22" stroke-linecap="butt"
+              stroke-dasharray="235.62" stroke-dashoffset="${offset.toFixed(2)}"/>
+        <!-- Center Percentage -->
+        <text x="100" y="104" font-size="28" font-weight="900" fill="#2E0854" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle">
+          ${p.toFixed(2)}
+        </text>
+        <!-- Range Labels -->
+        <text x="25" y="128" font-size="11" font-weight="700" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle">
+          ${minText}
+        </text>
+        <text x="175" y="128" font-size="11" font-weight="700" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle">
+          ${maxText}
+        </text>
+      `;
+    }
+
+    let chartDistClustered = null;
+    let chartDistRanking = null;
+    let chartDistDonut = null;
+    let chartMandalRanking = null;
+    let chartMandalDcb = null;
+
+    function onPbiMandalSlicerSelect(val) {
+      const mainSel = document.getElementById('mandal-select');
+      if (mainSel) mainSel.value = val;
+      const dist = document.getElementById('district-select').value;
+      updateActionLinks();
+      loadData(dist);
+    }
+
+    async function downloadPowerBiPdf() {
+      const container = document.getElementById('pbi-canvas-export');
+      if (!container || container.style.display === 'none') {
+        alert('Please select a district and generate the report first.');
+        return;
       }
+      const dist = document.getElementById('district-select').value || 'District';
+      const mandal = document.getElementById('mandal-select').value;
+      const isDistrictView = (mandal === 'all' || !mandal);
+      const fileName = isDistrictView
+        ? `${dist}_District_PowerBI_DCB_Report.pdf`
+        : `${dist}_${mandal}_Mandal_PowerBI_DCB_Report.pdf`;
 
-      // Needle angle: from -90 deg (0%) to +90 deg (100%)
-      const angleDeg = -90 + (p / 100.0) * 180;
-      const angleRad = (angleDeg * Math.PI) / 180;
-      const cx = 100, cy = 105, r = 68;
-      const needleX = cx + r * Math.sin(angleRad);
-      const needleY = cy - r * Math.cos(angleRad);
+      showStatus('Preparing high-resolution Power BI Report PDF...', 'info');
 
-      const svg = document.getElementById('pbi-gauge-svg');
-      if (svg) {
-        svg.innerHTML = `
-          <!-- Gauge Arc Background Track -->
-          <path d="M 25 105 A 75 75 0 0 1 175 105" fill="none" stroke="#E2E8F0" stroke-width="16" stroke-linecap="round"/>
-          
-          <!-- Colored Arc Segments: Red, Yellow, Green -->
-          <path d="M 25 105 A 75 75 0 0 1 65 48" fill="none" stroke="#DC2626" stroke-width="16"/>
-          <path d="M 65 48 A 75 75 0 0 1 135 48" fill="none" stroke="#EAB308" stroke-width="16"/>
-          <path d="M 135 48 A 75 75 0 0 1 175 105" fill="none" stroke="#16A34A" stroke-width="16" stroke-linecap="round"/>
-          
-          <!-- Min / Max Labels -->
-          <text x="22" y="124" font-size="9" font-weight="700" fill="#64748B" text-anchor="middle">0%</text>
-          <text x="178" y="124" font-size="9" font-weight="700" fill="#64748B" text-anchor="middle">100%</text>
-          <text x="100" y="24" font-size="9" font-weight="700" fill="#64748B" text-anchor="middle">50%</text>
-          
-          <!-- Needle -->
-          <line x1="${cx}" y1="${cy}" x2="${needleX.toFixed(1)}" y2="${needleY.toFixed(1)}" stroke="#0F172A" stroke-width="3.5" stroke-linecap="round"/>
-          <circle cx="${cx}" cy="${cy}" r="7" fill="#0F172A"/>
-          <circle cx="${cx}" cy="${cy}" r="3" fill="#FFFFFF"/>
-        `;
+      const opt = {
+        margin: [6, 8, 6, 8],
+        filename: fileName,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          scrollY: 0
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+
+      try {
+        if (typeof html2pdf !== 'undefined') {
+          await html2pdf().set(opt).from(container).save();
+          showStatus('Power BI Report PDF downloaded successfully!', 'info');
+          setTimeout(hideStatus, 4000);
+        } else {
+          window.print();
+        }
+      } catch (err) {
+        console.error('PDF export error:', err);
+        window.print();
       }
     }
 
     function renderExecutiveVisualReport(data) {
       if (!data || !data.summary) return;
       const s = data.summary;
-      const dist = s.district;
+      const dist = s.district || 'District';
       const mandal = s.mandal;
-      const isDistrictView = (mandal === 'All Mandals' || !mandal);
+      const isDistrictView = (mandal === 'all' || mandal === 'All Mandals' || !mandal);
 
-      // Title matching Power BI textbox
-      const titleEl = document.getElementById('pbi-header-title');
-      if (titleEl) {
-        if (isDistrictView) {
-          titleEl.textContent = `DEMAND, COLLECTION, BALANCE OF ${dist.toUpperCase()} DISTRICT`;
-        } else {
-          titleEl.textContent = `DEMAND - COLLECTION - BALANCE OF ${mandal.toUpperCase()} MANDAL`;
-        }
-      }
+      const placeholder = document.getElementById('pbi-placeholder');
+      if (placeholder) placeholder.style.display = 'none';
+      const canvasExport = document.getElementById('pbi-canvas-export');
+      if (canvasExport) canvasExport.style.display = 'block';
 
-      // Update Gauge
-      updateGaugeMeter(s.overall_percentage);
+      const distView = document.getElementById('pbi-district-view');
+      const mandalView = document.getElementById('pbi-mandal-view');
+      const indicator = document.getElementById('pbi-view-indicator');
 
-      // Determine items: Mandals or GPs
-      let items = [];
       if (isDistrictView) {
-        items = (data.mandal_abstract || []).map(m => ({
+        // Show District View, Hide Mandal View
+        if (distView) distView.style.display = 'block';
+        if (mandalView) mandalView.style.display = 'none';
+        if (indicator) indicator.textContent = `${dist} District DCB Overview (Mandal Abstract)`;
+
+        const distTitle = document.getElementById('pbi-dist-banner-title');
+        if (distTitle) distTitle.textContent = `DEMAND, COLLECTION, BALANCE OF ${dist.toUpperCase()} DISTRICT`;
+
+        // 1. Populate District Summary Table (sorted ascending by Collection %)
+        const distMandals = (data.mandal_abstract || []).map(m => ({
           name: m.mandal,
-          demand: m.demand_total,
-          collection: m.collection_total,
-          balance: m.balance_total,
-          percentage: m.percentage,
-        }));
-      } else {
-        items = (data.records || []).map(r => ({
-          name: r.panchayat,
-          demand: r.demand_total,
-          collection: r.collection_total,
-          balance: r.balance_total,
-          percentage: r.calc_percentage || 0,
-        }));
-      }
+          gps: m.total_gps,
+          demand: Number(m.demand_total) || 0,
+          collection: Number(m.collection_total) || 0,
+          balance: Number(m.balance_total) || 0,
+          percentage: Number(m.percentage) || 0,
+        })).sort((a, b) => a.percentage - b.percentage);
 
-      // Render Visual 1: Summary Table with DataBars
-      const tbody = document.getElementById('pbi-table-body');
-      const tableTitleEl = document.getElementById('pbi-table-title');
-      if (tableTitleEl) tableTitleEl.textContent = isDistrictView ? 'Mandal DCB Summary' : `${mandal} Gram Panchayats Summary`;
-      
-      let tableHtml = '';
-      const sortedItems = [...items].sort((a, b) => b.demand - a.demand);
-      sortedItems.forEach(it => {
-        tableHtml += `<tr>
-          <td><strong>${it.name}</strong></td>
-          <td class="num-cell">${formatInr(it.demand)}</td>
-          <td class="num-cell" style="color:#15803d; font-weight:700;">${formatInr(it.collection)}</td>
-          <td class="num-cell" style="color:#b91c1c;">${formatInr(it.balance)}</td>
-          <td class="center-cell">${renderPctCell(it.percentage)}</td>
+        let distTbodyHtml = '';
+        distMandals.forEach(m => {
+          const p = Math.max(0, Math.min(100, m.percentage));
+          distTbodyHtml += `<tr>
+            <td><strong>${m.name}</strong></td>
+            <td class="num-cell">${m.gps}</td>
+            <td class="num-cell">${formatInr(m.demand)}</td>
+            <td class="num-cell" style="color:#107C41; font-weight:700;">${formatInr(m.collection)}</td>
+            <td class="num-cell" style="color:#D83B01;">${formatInr(m.balance)}</td>
+            <td class="pbi-databar-td">
+              <div class="pbi-databar-wrap">
+                <div class="pbi-databar-fill" style="width:${p}%;"></div>
+                <span class="pbi-databar-val">${m.percentage.toFixed(2)}</span>
+              </div>
+            </td>
+          </tr>`;
+        });
+        const totPct = Number(s.overall_percentage) || 0;
+        distTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #64748B;">
+          <td><strong>Total</strong></td>
+          <td class="num-cell">${s.total_gps}</td>
+          <td class="num-cell">${formatInr(s.total_demand)}</td>
+          <td class="num-cell" style="color:#107C41;">${formatInr(s.total_collection)}</td>
+          <td class="num-cell" style="color:#D83B01;">${formatInr(s.total_balance)}</td>
+          <td class="pbi-databar-td">
+            <div class="pbi-databar-wrap">
+              <div class="pbi-databar-fill" style="width:${Math.max(0, Math.min(100, totPct))}%;"></div>
+              <span class="pbi-databar-val">${totPct.toFixed(2)}</span>
+            </div>
+          </td>
         </tr>`;
-      });
-      tableHtml += `<tr class="total-row">
-        <td><strong>Total</strong></td>
-        <td class="num-cell">${formatInr(s.total_demand)}</td>
-        <td class="num-cell" style="color:#15803d; font-weight:700;">${formatInr(s.total_collection)}</td>
-        <td class="num-cell" style="color:#b91c1c;">${formatInr(s.total_balance)}</td>
-        <td class="center-cell">${renderPctCell(s.overall_percentage)}</td>
-      </tr>`;
-      if (tbody) tbody.innerHTML = tableHtml;
+        const tbodyDist = document.getElementById('pbi-dist-table-body');
+        if (tbodyDist) tbodyDist.innerHTML = distTbodyHtml;
 
-      // Render Charts if Chart.js is loaded
-      if (typeof Chart === 'undefined') return;
+        // 2. Render District Gauge (DISTRICT TAX COLLECTION %)
+        drawPbiGauge('svg-dist-gauge', totPct, 'DISTRICT TAX COLLECTION %', '#DC2626', '0', '100');
 
-      const displayItems = isDistrictView ? sortedItems : sortedItems.slice(0, 20);
-      const labels = displayItems.map(it => it.name);
-      const dData = displayItems.map(it => it.demand);
-      const cData = displayItems.map(it => it.collection);
-      const bData = displayItems.map(it => it.balance);
-
-      const canvasClustered = document.getElementById('chart-clustered-dcb');
-      if (canvasClustered) {
-        if (chartClustered) chartClustered.destroy();
-        chartClustered = new Chart(canvasClustered.getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels: labels,
-            datasets: [
-              { label: 'Demand Total (₹)', data: dData, backgroundColor: '#2563EB', borderRadius: 3 },
-              { label: 'Collection Total (₹)', data: cData, backgroundColor: '#00A313', borderRadius: 3 },
-              { label: 'Balance Total (₹)', data: bData, backgroundColor: '#DC2626', borderRadius: 3 },
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'top', labels: { boxWidth: 12, font: { weight: 'bold', size: 11 } } },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => `${ctx.dataset.label}: ₹ ${formatInr(ctx.raw)}`
+        // 3. Render District Charts with Chart.js
+        if (typeof Chart !== 'undefined') {
+          // Chart 1: Clustered DCB by Mandal
+          const canvasClustered = document.getElementById('chart-dist-clustered');
+          if (canvasClustered) {
+            if (chartDistClustered) chartDistClustered.destroy();
+            const mAlphabetical = [...distMandals].sort((a, b) => a.name.localeCompare(b.name));
+            chartDistClustered = new Chart(canvasClustered.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: mAlphabetical.map(m => m.name),
+                datasets: [
+                  { label: 'Demand', data: mAlphabetical.map(m => m.demand), backgroundColor: '#0078D4', borderRadius: 2, hideDataLabels: true },
+                  { label: 'Collection', data: mAlphabetical.map(m => m.collection), backgroundColor: '#107C41', borderRadius: 2, hideDataLabels: true },
+                  { label: 'Balance', data: mAlphabetical.map(m => m.balance), backgroundColor: '#D83B01', borderRadius: 2, hideDataLabels: true },
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'top', align: 'center', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } },
+                  tooltip: {
+                    callbacks: { label: (ctx) => `${ctx.dataset.label}: ₹ ${formatInr(ctx.raw)}` }
+                  }
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 55 } },
+                  y: {
+                    ticks: {
+                      callback: (val) => val >= 10000000 ? (val / 10000000).toFixed(1) + ' Cr' : val >= 100000 ? (val / 100000).toFixed(1) + ' L' : val
+                    }
+                  }
                 }
               }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
-              y: { ticks: { callback: (val) => '₹ ' + (val >= 100000 ? (val/100000).toFixed(1) + ' L' : val) } }
-            }
+            });
           }
-        });
-      }
 
-      // Visual 3: Collection % Ranking Column Chart
-      const rankedItems = [...items].sort((a, b) => b.percentage - a.percentage).slice(0, 20);
-      const rLabels = rankedItems.map(it => it.name);
-      const rPcts = rankedItems.map(it => Math.round(it.percentage));
-      const rColors = rPcts.map(p => getGradientColor(p).bg);
-
-      const canvasRanking = document.getElementById('chart-pct-ranking');
-      if (canvasRanking) {
-        if (chartRanking) chartRanking.destroy();
-        chartRanking = new Chart(canvasRanking.getContext('2d'), {
-          type: 'bar',
-          data: {
-            labels: rLabels,
-            datasets: [
-              { label: 'Collection %', data: rPcts, backgroundColor: rColors, borderRadius: 3 }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: (ctx) => `Collection: ${ctx.raw}%` } }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
-              y: { min: 0, max: 100, ticks: { callback: (val) => val + '%' } }
-            }
-          }
-        });
-      }
-
-      // Visual 4: DCB Distribution Donut Chart
-      const canvasPie = document.getElementById('chart-dcb-pie');
-      if (canvasPie) {
-        if (chartPie) chartPie.destroy();
-        chartPie = new Chart(canvasPie.getContext('2d'), {
-          type: 'doughnut',
-          data: {
-            labels: ['Collection Total', 'Balance Outstanding'],
-            datasets: [{
-              data: [s.total_collection, s.total_balance],
-              backgroundColor: ['#00A313', '#DC2626'],
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { boxWidth: 12, font: { weight: 'bold', size: 11 } } },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => ` ₹ ${formatInr(ctx.raw)} (${Math.round(ctx.raw / (s.total_demand || 1) * 100)}%)`
+          // Chart 2: PERCENTAGE OF COLLECTION BY MANDAL (Sorted Descending, with data labels)
+          const canvasRanking = document.getElementById('chart-dist-ranking');
+          if (canvasRanking) {
+            if (chartDistRanking) chartDistRanking.destroy();
+            const mRanking = [...distMandals].sort((a, b) => b.percentage - a.percentage);
+            chartDistRanking = new Chart(canvasRanking.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: mRanking.map(m => m.name),
+                datasets: [{
+                  label: 'Collection %',
+                  data: mRanking.map(m => Math.round(m.percentage)),
+                  backgroundColor: '#0078D4',
+                  borderRadius: 2
+                }]
+              },
+              plugins: [pbiDataLabelsPlugin],
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { callbacks: { label: (ctx) => `Collection: ${ctx.raw}%` } }
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 55 } },
+                  y: { min: 0, max: 100, ticks: { callback: (val) => val + '%' } }
                 }
               }
-            },
-            cutout: '58%'
+            });
           }
+
+          // Chart 3: Overall DCB Breakdown Donut
+          const canvasDonut = document.getElementById('chart-dist-donut');
+          if (canvasDonut) {
+            if (chartDistDonut) chartDistDonut.destroy();
+            chartDistDonut = new Chart(canvasDonut.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels: ['Demand', 'Collection', 'Balance'],
+                datasets: [{
+                  data: [s.total_demand, s.total_collection, s.total_balance],
+                  backgroundColor: ['#002060', '#008000', '#ED7D31'],
+                  borderWidth: 2,
+                  borderColor: '#ffffff'
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx) => `${ctx.label}: ₹ ${formatInr(ctx.raw)}`
+                    }
+                  }
+                },
+                cutout: '54%'
+              }
+            });
+          }
+        }
+      } else {
+        // Show Mandal View, Hide District View
+        if (distView) distView.style.display = 'none';
+        if (mandalView) mandalView.style.display = 'block';
+        if (indicator) indicator.textContent = `${dist} District · ${mandal} Mandal DCB Analytics`;
+
+        const mandalTitle = document.getElementById('pbi-mandal-banner-title');
+        if (mandalTitle) mandalTitle.textContent = `DEMAND - COLLECTION - BALANCE OF ${mandal.toUpperCase()} MANDAL`;
+
+        // Populate Mandal Slicer dropdown
+        const slicerSelect = document.getElementById('pbi-mandal-slicer-select');
+        if (slicerSelect) {
+          const mainMandalSelect = document.getElementById('mandal-select');
+          if (mainMandalSelect) {
+            slicerSelect.innerHTML = '';
+            Array.from(mainMandalSelect.options).forEach(opt => {
+              const o = document.createElement('option');
+              o.value = opt.value;
+              o.textContent = opt.value === 'all' ? '🏛️ All Mandals (District Overview)' : opt.textContent;
+              if (opt.value === mandal) o.selected = true;
+              slicerSelect.appendChild(o);
+            });
+          }
+        }
+
+        // 1. Populate Mandal GP Table (sorted ascending by Collection %)
+        const gpRecords = (data.records || []).map(r => ({
+          name: r.panchayat,
+          demand: Number(r.demand_total) || 0,
+          collection: Number(r.collection_total) || 0,
+          balance: Number(r.balance_total) || 0,
+          percentage: Number(r.calc_percentage !== undefined ? r.calc_percentage : r.percentage) || 0
+        })).sort((a, b) => a.percentage - b.percentage);
+
+        let mandalTbodyHtml = '';
+        gpRecords.forEach(gp => {
+          const p = Math.max(0, Math.min(100, gp.percentage));
+          mandalTbodyHtml += `<tr>
+            <td><strong>${gp.name}</strong></td>
+            <td class="num-cell">${formatInr(gp.demand)}</td>
+            <td class="num-cell" style="color:#107C41; font-weight:700;">${formatInr(gp.collection)}</td>
+            <td class="num-cell" style="color:#D83B01;">${formatInr(gp.balance)}</td>
+            <td class="pbi-databar-td">
+              <div class="pbi-databar-wrap">
+                <div class="pbi-databar-fill" style="width:${p}%;"></div>
+                <span class="pbi-databar-val">${Math.round(gp.percentage)}</span>
+              </div>
+            </td>
+          </tr>`;
         });
+        const mTotPct = Number(s.overall_percentage) || 0;
+        mandalTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #64748B;">
+          <td><strong>Total</strong></td>
+          <td class="num-cell">${formatInr(s.total_demand)}</td>
+          <td class="num-cell" style="color:#107C41;">${formatInr(s.total_collection)}</td>
+          <td class="num-cell" style="color:#D83B01;">${formatInr(s.total_balance)}</td>
+          <td class="pbi-databar-td">
+            <div class="pbi-databar-wrap">
+              <div class="pbi-databar-fill" style="width:${Math.max(0, Math.min(100, mTotPct))}%;"></div>
+              <span class="pbi-databar-val">${mTotPct.toFixed(2)}</span>
+            </div>
+          </td>
+        </tr>`;
+        const tbodyMandal = document.getElementById('pbi-mandal-table-body');
+        if (tbodyMandal) tbodyMandal.innerHTML = mandalTbodyHtml;
+
+        // 2. Render Mandal Gauge (MANDAL %)
+        drawPbiGauge('svg-mandal-gauge', mTotPct, 'MANDAL %', '#0F172A', '0.00', '100.00');
+
+        // 3. Render Mandal Charts
+        if (typeof Chart !== 'undefined') {
+          // Chart 1: GP Wise Collection percentage (Sorted Descending, with data labels)
+          const canvasMandalRanking = document.getElementById('chart-mandal-ranking');
+          if (canvasMandalRanking) {
+            if (chartMandalRanking) chartMandalRanking.destroy();
+            const gpRanking = [...gpRecords].sort((a, b) => b.percentage - a.percentage);
+            chartMandalRanking = new Chart(canvasMandalRanking.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: gpRanking.map(g => g.name),
+                datasets: [{
+                  label: 'Collection %',
+                  data: gpRanking.map(g => Math.round(g.percentage)),
+                  backgroundColor: '#0078D4',
+                  borderRadius: 2
+                }]
+              },
+              plugins: [pbiDataLabelsPlugin],
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false },
+                  tooltip: { callbacks: { label: (ctx) => `Collection: ${ctx.raw}%` } }
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { font: { size: 8.5 }, maxRotation: 55 } },
+                  y: { min: 0, max: 100, ticks: { callback: (val) => val + '%' } }
+                }
+              }
+            });
+          }
+
+          // Chart 2: Panchayat wise Demand, Collection and Balance (Demand=Red, Collection=Green, Balance=Blue)
+          const canvasMandalDcb = document.getElementById('chart-mandal-dcb');
+          if (canvasMandalDcb) {
+            if (chartMandalDcb) chartMandalDcb.destroy();
+            const gpOrder = [...gpRecords].sort((a, b) => a.name.localeCompare(b.name));
+            chartMandalDcb = new Chart(canvasMandalDcb.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: gpOrder.map(g => g.name),
+                datasets: [
+                  { label: 'Demand', data: gpOrder.map(g => g.demand), backgroundColor: '#DC2626', borderRadius: 2, hideDataLabels: true },
+                  { label: 'Collection', data: gpOrder.map(g => g.collection), backgroundColor: '#16A34A', borderRadius: 2, hideDataLabels: true },
+                  { label: 'Balance', data: gpOrder.map(g => g.balance), backgroundColor: '#2563EB', borderRadius: 2, hideDataLabels: true },
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'top', align: 'center', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } },
+                  tooltip: {
+                    callbacks: { label: (ctx) => `${ctx.dataset.label}: ₹ ${formatInr(ctx.raw)}` }
+                  }
+                },
+                scales: {
+                  x: { grid: { display: false }, ticks: { font: { size: 8.5 }, maxRotation: 55 } },
+                  y: {
+                    ticks: {
+                      callback: (val) => val >= 100000 ? (val / 100000).toFixed(1) + ' L' : val
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }
       }
     }
 
