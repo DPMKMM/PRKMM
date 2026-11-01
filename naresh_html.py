@@ -743,15 +743,6 @@ NARESH_PAGE_HTML = """<!doctype html>
           <span class="live-dot"></span>
           Automated Robot Ready
         </span>
-        <span class="badge badge-portal">
-          🏛️ Source: EPTS (DPOA3698)
-        </span>
-        <span class="badge badge-info" id="report-date-badge">
-          📅 Target Date: Select Date Below
-        </span>
-        <span class="badge badge-info">
-          🛡️ Khammam District (571 GPs)
-        </span>
       </div>
     </section>
 
@@ -1207,8 +1198,9 @@ NARESH_PAGE_HTML = """<!doctype html>
         reportData = await res.json();
         
         // Update Badges & Date
-        if (reportData.report_date) {
-          document.getElementById('report-date-badge').innerText = `📅 Date: ${reportData.report_date}`;
+        const dateEl = document.getElementById('report-date-badge');
+        if (dateEl && reportData.report_date) {
+          dateEl.innerText = `📅 Date: ${reportData.report_date}`;
         }
 
         // Update Totals
