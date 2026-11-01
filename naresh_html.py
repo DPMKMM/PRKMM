@@ -711,14 +711,14 @@ NARESH_PAGE_HTML = """<!doctype html>
     <div class="nav-inner">
       <a class="nav-brand" href="/naresh">
         <span>🏛️ Telangana Panchayat Raj</span>
-        <span class="nav-brand-badge">Naresh Portal</span>
+        <span class="nav-brand-badge">Automated DSR Portal</span>
       </a>
       <nav class="nav-links">
         <a class="nav-link" href="/#home">Home</a>
         <a class="nav-link" href="/#reports-district">District Monitoring</a>
         <a class="nav-link" href="/#reports-mandal">Mandal Monitoring</a>
         <a class="nav-link" href="/reports/tax-dcb">House Tax DCB</a>
-        <a class="nav-link active" href="/naresh">⚡ Naresh Station</a>
+        <a class="nav-link active" href="/naresh">⚡ Automated DSR</a>
       </nav>
     </div>
   </header>
@@ -792,7 +792,7 @@ NARESH_PAGE_HTML = """<!doctype html>
         <div class="form-row">
           <div class="form-group">
             <label>User ID</label>
-            <input type="text" id="auto-user" placeholder="Enter User ID (e.g. DPOA3698)" autocomplete="username" required>
+            <input type="text" id="auto-user" placeholder="Enter User ID (e.g. DPOA3698)" autocomplete="username" oninput="updateOfficerBadge(this.value)" required>
           </div>
           <div class="form-group">
             <label>Password</label>
@@ -1038,6 +1038,42 @@ NARESH_PAGE_HTML = """<!doctype html>
       }
     }
 
+    function updateOfficerBadge(val) {
+      const clean = val.trim();
+      const offText = document.getElementById('officer-id-text');
+      const offBadge = document.getElementById('officer-badge');
+      if (clean) {
+        if (offText) offText.innerText = clean;
+        if (offBadge) offBadge.style.display = 'inline-flex';
+      } else {
+        if (offBadge) offBadge.style.display = 'none';
+      }
+    }
+
+    async function safeFetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      const contentType = res.headers.get('content-type') || '';
+      let data = null;
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch (e) {
+          data = null;
+        }
+      }
+      if (!res.ok) {
+        if (data && data.detail) {
+          throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
+        }
+        if (data && data.message) {
+          throw new Error(data.message);
+        }
+        const text = !data ? await res.text().catch(() => '') : '';
+        throw new Error(text || `Request returned status ${res.status}`);
+      }
+      return data || {};
+    }
+
     async function startDepartmentLogin() {
       const user = document.getElementById('auto-user').value.trim();
       const pwd = document.getElementById('auto-pwd').value.trim();
@@ -1047,10 +1083,7 @@ NARESH_PAGE_HTML = """<!doctype html>
       }
 
       // Dynamically display officer ID badge
-      const offText = document.getElementById('officer-id-text');
-      const offBadge = document.getElementById('officer-badge');
-      if (offText) offText.innerText = user;
-      if (offBadge) offBadge.style.display = 'inline-flex';
+      updateOfficerBadge(user);
 
       const btn = document.getElementById('btn-login');
       btn.disabled = true;
@@ -1062,12 +1095,10 @@ NARESH_PAGE_HTML = """<!doctype html>
         formData.append('username', user);
         formData.append('password', pwd);
 
-        const res = await fetch('/api/naresh/login', {
+        const json = await safeFetchJson('/api/naresh/login', {
           method: 'POST',
           body: formData
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || 'Login initiation failed');
 
         updateStatus(json.message || 'OTP triggered successfully!', 'success');
         document.getElementById('session-badge').innerText = `Officer: ${user} (Awaiting OTP)`;
@@ -1080,14 +1111,14 @@ NARESH_PAGE_HTML = """<!doctype html>
         updateStatus('Login Note: ' + err.message, 'error');
         if (err.message.includes('Telangana State Data Center') || err.message.includes('firewall') || err.message.includes('503')) {
           const proceed = confirm(
-            `⚠️ Cloud Datacenter Notice:\\n\\n${err.message}\\n\\nWould you like to proceed with Officer ${user}'s session and generate the official DSR report directly?`
+            `⚠️ Cloud Datacenter Notice:\n\n${err.message}\n\nWould you like to proceed with Officer ${user}'s session and generate the official DSR report directly?`
           );
           if (proceed) {
             document.getElementById('session-badge').innerText = `Officer: ${user} (Connected)`;
             goToStep(3);
           }
         } else {
-          alert('Login failed: ' + err.message);
+          alert('Login notification: ' + err.message);
         }
       } finally {
         btn.disabled = false;
@@ -1111,19 +1142,17 @@ NARESH_PAGE_HTML = """<!doctype html>
         const formData = new FormData();
         formData.append('otp', otp);
 
-        const res = await fetch('/api/naresh/verify-otp', {
+        const json = await safeFetchJson('/api/naresh/verify-otp', {
           method: 'POST',
           body: formData
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || 'OTP validation failed');
 
-        updateStatus(`Authenticated! Session active for Officer ${user}.`, 'success');
+        updateStatus(json.message || `Authenticated! Session active for Officer ${user}.`, 'success');
         document.getElementById('session-badge').innerText = `Officer: ${user} (Active)`;
         goToStep(3);
       } catch (err) {
         updateStatus('OTP Error: ' + err.message, 'error');
-        alert('OTP validation failed: ' + err.message);
+        alert('OTP verification: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '✅ Validate OTP & Proceed to Report Selection';
@@ -1171,12 +1200,10 @@ NARESH_PAGE_HTML = """<!doctype html>
           barFill.style.width = '75%';
         }, 1600);
 
-        const res = await fetch('/api/naresh/generate', {
+        const json = await safeFetchJson('/api/naresh/generate', {
           method: 'POST',
           body: formData
         });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || 'Report generation failed');
 
         setSubStep(3, 'done');
         setSubStep(4, 'done');
@@ -1201,7 +1228,7 @@ NARESH_PAGE_HTML = """<!doctype html>
         spinner.style.display = 'none';
         titleEl.innerText = 'Generation encountered an error';
         updateStatus('Error: ' + err.message, 'error');
-        alert('Report generation failed: ' + err.message);
+        alert('Report generation: ' + err.message);
       }
     }
 
@@ -1214,9 +1241,7 @@ NARESH_PAGE_HTML = """<!doctype html>
 
     async function loadNareshData() {
       try {
-        const res = await fetch('/api/naresh/data');
-        if (!res.ok) throw new Error('Failed to load data');
-        reportData = await res.json();
+        reportData = await safeFetchJson('/api/naresh/data');
         
         // Update Badges & Date
         const dateEl = document.getElementById('report-date-badge');

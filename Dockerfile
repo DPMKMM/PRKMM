@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && chown -R appuser:appuser /app /tmp/khammam-attendance-data
 
 COPY --chown=appuser:appuser *.py bundled_allgpdata.xls bundled_raw_dsr.xls ./
-COPY --chown=appuser:appuser automate_epts/downloads/ ./automate_epts/downloads/
+COPY --chown=appuser:appuser automate_epts/ ./automate_epts/
 
 USER 10001
 EXPOSE 8080
