@@ -816,7 +816,7 @@ TAX_PAGE_HTML = """<!doctype html>
       <nav class="nav-menu">
         <a class="nav-link" href="/">🏠 Home</a>
         <a class="nav-link" href="/reports/ps-attendance">📋 PS Attendance</a>
-        <a class="nav-link active" href="/reports/tax-dcb">💰 Tax DCB Consolidation</a>
+        <a class="nav-link active" href="/reports/tax-dcb">💰 House Tax (DCB) Report</a>
       </nav>
     </div>
   </header>

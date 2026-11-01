@@ -233,7 +233,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <a class="dropdown-item" href="/reports/tax-dcb">
               <span class="dropdown-item-icon">💰</span>
               <div class="dropdown-item-content">
-                <strong>GP House Tax DCB Consolidation</strong>
+                <strong>House Tax Collection (DCB) Report</strong>
                 <span>Live Demand, Collection &amp; Balance Analytics &amp; PDF</span>
                 <span class="badge-live" style="margin-top:3px; display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:4px;">● Live</span>
               </div>
@@ -290,9 +290,9 @@ UPLOAD_PAGE_HTML = """<!doctype html>
               <div class="module-icon-wrap">💰</div>
               <span class="module-badge badge-live">● Active · Live</span>
             </div>
-            <h3>GP Tax Collection &amp; Finances</h3>
+            <h3>House Tax Collection (DCB) Report</h3>
             <p>
-              Live Demand, Collection, and Balance (DCB) monitoring and consolidated official 35-page PDF reports across all Mandals and Gram Panchayats in Telangana districts.
+              Live Demand, Collection, and Balance (DCB) monitoring with interactive Power BI visual-based analytical reports. Mandal-wise and District-level PDF reports are available for comprehensive monitoring, performance analysis
             </p>
           </div>
           <div class="module-actions">
