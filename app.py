@@ -35,6 +35,10 @@ from report_generator import (
     generate_pdf,
     process_attendance_file,
 )
+from tax_dcb_html import TAX_PAGE_HTML
+import tax_service
+import dcb_pdf_generator
+
 
 
 logger = logging.getLogger("khammam_attendance")
@@ -223,16 +227,16 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             </a>
 
             <div class="dropdown-divider"></div>
-            <div class="dropdown-header">Upcoming Reporting Options</div>
+            <div class="dropdown-header">Tax &amp; DCB Analytics</div>
 
-            <div class="dropdown-item disabled">
+            <a class="dropdown-item" href="/reports/tax-dcb">
               <span class="dropdown-item-icon">💰</span>
               <div class="dropdown-item-content">
-                <strong>GP Tax Collection &amp; Finances</strong>
-                <span>House Tax &amp; Non-Tax DCB Progress</span>
-                <span class="badge-soon">Coming Soon</span>
+                <strong>GP House Tax DCB Consolidation</strong>
+                <span>Live Demand, Collection &amp; Balance Analytics &amp; PDF</span>
+                <span class="badge-live" style="margin-top:3px; display:inline-block; font-size:0.65rem; padding:1px 5px; border-radius:4px;">● Live</span>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </nav>
@@ -278,20 +282,25 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           </div>
         </div>
 
-        <!-- Module 2: Tax Collection (Upcoming) -->
-        <div class="module-card">
+        <!-- Module 2: Tax Collection (ACTIVE) -->
+        <div class="module-card active-module">
           <div>
             <div class="module-card-header">
               <div class="module-icon-wrap">💰</div>
-              <span class="module-badge badge-planned">Coming Soon</span>
+              <span class="module-badge badge-live">● Active · Live</span>
             </div>
             <h3>GP Tax Collection &amp; Finances</h3>
             <p>
-              Real-time Demand, Collection, and Balance (DCB) monitoring for House Tax across Gram Panchayats.
+              Live Demand, Collection, and Balance (DCB) monitoring and consolidated official 35-page PDF reports across all Mandals and Gram Panchayats in Telangana districts.
             </p>
           </div>
           <div class="module-actions">
-            <button type="button" class="btn-action btn-disabled" disabled>Planned Module</button>
+            <a href="/reports/tax-dcb?district=Khammam" class="btn-action btn-primary">
+              📊 View DCB Analytics
+            </a>
+            <a href="/api/tax/report.pdf?district=Khammam" target="_blank" class="btn-action btn-secondary">
+              📄 Official PDF Report
+            </a>
           </div>
         </div>
       </div>
@@ -975,6 +984,65 @@ def create_app(
             media_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="{_record_report_filename(record)}"'},
         )
+
+    # -------------------------------------------------------------
+    # Tax DCB Consolidation & PDF Report Endpoints
+    # -------------------------------------------------------------
+    @api.get("/reports/tax-dcb", response_class=HTMLResponse, include_in_schema=False)
+    def tax_dcb_page(district: str = "Khammam") -> HTMLResponse:
+        return HTMLResponse(TAX_PAGE_HTML)
+
+    @api.get("/api/tax/districts")
+    def get_tax_districts() -> list[dict[str, Any]]:
+        return tax_service.get_districts_list()
+
+    @api.get("/api/tax/mandals")
+    def get_tax_mandals(district: str = "Khammam") -> list[str]:
+        return tax_service.get_mandals_for_district(district)
+
+    @api.get("/api/tax/data")
+    def get_tax_data(district: str = "Khammam", mandal: str = "all") -> dict[str, Any]:
+        return tax_service.get_filtered_data(district, mandal)
+
+    @api.get("/api/tax/report.pdf")
+    def view_tax_pdf(district: str = "Khammam") -> Response:
+        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+
+    @api.get("/api/tax/download-pdf")
+    def download_tax_pdf(district: str = "Khammam") -> Response:
+        filename, pdf_bytes = dcb_pdf_generator.get_or_generate_dcb_pdf(district)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+
+    @api.get("/api/tax/download")
+    def download_tax_data(district: str = "Khammam", format: str = "xlsx") -> Response:
+        safe_dist = district.strip().replace(" ", "_")
+        if format.lower() == "csv":
+            csv_bytes = tax_service.generate_consolidated_csv(district)
+            return Response(
+                content=csv_bytes,
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.csv"'},
+            )
+        excel_bytes = tax_service.generate_consolidated_excel(district)
+        return Response(
+            content=excel_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{safe_dist}_House_Tax_DCB.xlsx"'},
+        )
+
+    @api.post("/api/tax/refresh")
+    def refresh_tax_data() -> dict[str, Any]:
+        df = tax_service.get_df(force_reload=True)
+        return {"status": "ok", "total_gps": len(df), "message": "Fresh DCB data successfully downloaded."}
 
     return api
 app = create_app()

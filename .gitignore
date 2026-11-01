@@ -17,4 +17,5 @@ secrets/
 *.pem
 *.p12
 *.pdf
+allgpdata.xls
 push_to_render.bat
