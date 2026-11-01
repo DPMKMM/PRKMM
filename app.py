@@ -167,17 +167,10 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           </div>
 
           <div class="field-group">
-            <label for="mandal-select">2. Select Your Mandal <span class="req">*</span></label>
-            <select id="mandal-select" name="mandal_name" required disabled>
-              <option value="">-- Upload raw data file first to select Mandal --</option>
-            </select>
-            <div class="hint" id="mandal-detect-hint">Choose your Mandal from the list detected in the uploaded file.</div>
-          </div>
-
-          <div class="field-group">
-            <label for="mandal-requested-by">Your name or office (optional)</label>
-            <input id="mandal-requested-by" name="RequestedBy" type="text" maxlength="320"
-              autocomplete="name" placeholder="E.g., MPO / MPDO Office">
+            <label for="mandal-display">2. Uploaded Mandal</label>
+            <input id="mandal-display" type="text" readonly placeholder="Mandal name will appear here automatically after upload..." style="font-weight: 600; color: #167451; background: #fbfdfc;">
+            <input type="hidden" id="mandal-select" name="mandal_name">
+            <div class="hint" id="mandal-detect-hint">Mandal name detected from the uploaded raw data file.</div>
           </div>
 
           <div class="actions">
@@ -227,36 +220,33 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
       // Dynamic Mandal detection when Mandal file is chosen
       const mandalFileInput = document.getElementById('mandal-attendance-file');
+      const mandalDisplay = document.getElementById('mandal-display');
       const mandalSelect = document.getElementById('mandal-select');
       const mandalDetectHint = document.getElementById('mandal-detect-hint');
 
       mandalFileInput.addEventListener('change', async () => {
         const file = mandalFileInput.files[0];
         if (!file) return;
-        mandalSelect.disabled = true;
-        mandalSelect.innerHTML = '<option value="">Detecting Mandals from file…</option>';
+        mandalDisplay.value = 'Detecting Mandal from file…';
         mandalDetectHint.textContent = 'Reading uploaded file…';
         try {
           const data = new FormData();
           data.append('file', file);
           const meta = await apiJson('/api/web/detect-mandals', { method: 'POST', body: data });
-          mandalSelect.innerHTML = '';
           if (meta.mandals && meta.mandals.length > 0) {
-            meta.mandals.forEach(m => {
-              const opt = document.createElement('option');
-              opt.value = m;
-              opt.textContent = m;
-              mandalSelect.appendChild(opt);
-            });
-            mandalSelect.disabled = false;
-            mandalDetectHint.textContent = `Detected District: ${meta.district_name || 'Telangana'} | Mandals: ${meta.mandals.length}`;
+            const mandalName = meta.mandals[0];
+            mandalDisplay.value = mandalName;
+            mandalSelect.value = mandalName;
+            mandalDetectHint.textContent = `Detected District: ${meta.district_name || 'Telangana'} | Uploaded Mandal: ${mandalName}`;
           } else {
-            mandalSelect.innerHTML = '<option value="">No mandals found in file</option>';
-            mandalDetectHint.textContent = 'Could not detect mandals in the file.';
+            mandalDisplay.value = 'No mandal found';
+            mandalSelect.value = '';
+            mandalDetectHint.textContent = 'Could not detect mandal in the file.';
           }
         } catch (err) {
-          mandalSelect.innerHTML = '<option value="">Failed to detect mandals</option>';
-          mandalDetectHint.textContent = err.message || 'Error detecting mandals.';
+          mandalDisplay.value = 'Failed to detect mandal';
+          mandalSelect.value = '';
+          mandalDetectHint.textContent = err.message || 'Error detecting mandal.';
         }
       });
 
@@ -322,18 +312,14 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         e.preventDefault();
         const file = mandalFileInput.files[0];
         if (!file) return;
-        const mandalName = mandalSelect.value;
-        if (!mandalName) {
-          showMessage(document.getElementById('mandal-report-message'), 'Please select a Mandal.');
-          return;
-        }
+        const mandalName = mandalSelect.value || mandalDisplay.value || '';
         const data = new FormData();
         data.append('file', file);
         data.append('report_mode', 'mandal');
-        data.append('mandal_name', mandalName);
-        const reqBy = document.getElementById('mandal-requested-by').value.trim();
-        if (reqBy) data.append('RequestedBy', reqBy);
-        runReportJob(data, document.getElementById('mandal-generate-button'), document.getElementById('mandal-report-message'), `${mandalName}_Mandal_Attendance_Report.pdf`);
+        if (mandalName && mandalName !== 'No mandal found' && mandalName !== 'Failed to detect mandal' && mandalName !== 'Detecting Mandal from file…') {
+          data.append('mandal_name', mandalName);
+        }
+        runReportJob(data, document.getElementById('mandal-generate-button'), document.getElementById('mandal-report-message'), `${mandalName || 'Mandal'}_Attendance_Report.pdf`);
       });
 
     })();

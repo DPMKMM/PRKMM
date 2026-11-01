@@ -1226,6 +1226,7 @@ def detect_file_metadata(filename: str, raw_bytes: bytes) -> dict[str, Any]:
     return {
         "district_name": district_name,
         "mandals": mandals,
+        "mandal_name": mandals[0] if len(mandals) == 1 else (", ".join(mandals) if mandals else ""),
         "total_records": len(frame),
     }
 
