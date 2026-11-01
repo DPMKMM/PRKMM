@@ -150,14 +150,14 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       <!-- TAB 2: Mandal Level Monitoring -->
       <div id="tab-mandal" class="tab-content">
         <div class="notice">
-          <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Select your Mandal to generate a clean 2-page report: Page 1 with GP Attendance status, time (highlighted in red for submissions after 9 AM), and DSR entry status; Page 2 with dedicated Attendance Pending GPs and exception lists.
+          <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
         </div>
 
         <form id="mandal-form">
           <div class="field-group">
             <label for="mandal-attendance-file">1. Attendance &amp; DSR Raw Data File <span class="req">*</span></label>
             <input id="mandal-attendance-file" name="file" type="file" required accept=".xls,.xlsx,.csv">
-            <div class="hint">Upload your attendance raw data file. Mandals will be detected automatically.</div>
+            <div class="hint">Upload your attendance raw data file. Mandal name is auto-detected directly from the file.</div>
           </div>
 
           <div class="field-group">
