@@ -105,7 +105,7 @@ class NumberedCanvas(canvas.Canvas):
 def get_or_generate_dcb_pdf(
     district_name: str = "Khammam",
     mandal_name: Optional[str] = None,
-    force_regenerate: bool = False,
+    force_regenerate: bool = True,
     report_date_str: Optional[str] = None,
 ) -> tuple[str, bytes]:
     """Return filename and bytes of the generated DCB report for the district / mandal."""
@@ -341,33 +341,38 @@ def generate_dcb_pdf(
             is_last_chunk_of_mandal = (page_idx == num_pages_mandal - 1)
             chunk_size = total_gps - cursor if is_last_chunk_of_mandal else gps_per_page
             chunk = gp_records[cursor : cursor + chunk_size]
-            total_rows_on_page = len(chunk) + 1 + (1 if is_last_chunk_of_mandal else 0)
 
-            # Best-fit vertical padding and font size based on row count
-            if total_rows_on_page <= 20:
-                pad_v = 3.6
-                f_sz = 7.0
-                f_lead = 8.5
-            elif total_rows_on_page <= 25:
-                pad_v = 2.8
-                f_sz = 6.8
-                f_lead = 8.0
+            # Calculate exact available vertical height to fill the entire page space
+            has_title_here = (len(flowables) == 1)
+            avail_h = 555.27 - (28 if has_title_here else 0) - 14.0
+            h_hdr = 22.0
+            n_data_and_total = len(chunk) + (1 if is_last_chunk_of_mandal else 0)
+            h_row = (avail_h - h_hdr) / float(n_data_and_total)
+
+            # Proportional font size and leading based on expanded row height
+            if h_row >= 24.0:
+                f_sz = 8.2
+                f_lead = 9.8
+            elif h_row >= 20.0:
+                f_sz = 7.6
+                f_lead = 9.0
             else:
-                pad_v = 1.7
-                f_sz = 6.4
-                f_lead = 7.4
+                f_sz = 7.0
+                f_lead = 8.2
 
             cur_cell_left = ParagraphStyle(f"CBL_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=0, textColor=colors.black)
             cur_cell_right = ParagraphStyle(f"CBR_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=2, textColor=colors.black)
             cur_cell_center = ParagraphStyle(f"CBC_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica", fontSize=f_sz, leading=f_lead, alignment=1, textColor=colors.black)
 
+            tot_cell_label = ParagraphStyle(f"TL_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=f_sz, leading=f_lead, alignment=0, textColor=colors.black)
+            tot_cell_num = ParagraphStyle(f"TN_{m_idx}_{page_idx}", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=f_sz, leading=f_lead, alignment=2, textColor=colors.black)
+
             table_data = [header_row]
+            row_heights = [h_hdr]
             table_styles = [
                 ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#333333")),
                 ("BACKGROUND", (0, 0), (-1, 0), colors.white),
                 ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                ("TOPPADDING", (0, 0), (-1, -1), pad_v),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), pad_v),
                 ("LEFTPADDING", (0, 0), (-1, -1), 2.2),
                 ("RIGHTPADDING", (0, 0), (-1, -1), 2.2),
             ]
@@ -403,17 +408,43 @@ def generate_dcb_pdf(
                 ]
                 row_idx = len(table_data)
                 table_data.append(row)
+                row_heights.append(h_row)
 
                 # Set % background to continuous Green-Yellow-Red gradient
                 table_styles.append(("BACKGROUND", (12, row_idx), (12, row_idx), colors.HexColor(row_bg_hex)))
 
             if is_last_chunk_of_mandal:
                 tot_idx = len(table_data)
-                table_data.append(total_row)
+                tot_pct_style = ParagraphStyle(
+                    f"TotPct_{m_idx}_{page_idx}",
+                    parent=styles["Normal"],
+                    fontName="Helvetica-Bold",
+                    fontSize=f_sz + 0.3,
+                    leading=f_lead,
+                    alignment=1,
+                    textColor=colors.HexColor(tot_fg_hex),
+                )
+                cur_total_row = [
+                    Paragraph("", tot_cell_label),
+                    Paragraph(f"{mandal_name} Total", tot_cell_label),
+                    Paragraph("", tot_cell_label),
+                    Paragraph(format_indian_currency(tot_d_arr), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_d_cur), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_d_tot), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_c_arr), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_c_cur), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_c_tot), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_b_arr), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_b_cur), tot_cell_num),
+                    Paragraph(format_indian_currency(tot_b_tot), tot_cell_num),
+                    Paragraph(str(tot_pct), tot_pct_style),
+                ]
+                table_data.append(cur_total_row)
+                row_heights.append(h_row)
                 table_styles.append(("BACKGROUND", (12, tot_idx), (12, tot_idx), colors.HexColor(tot_bg_hex)))
                 table_styles.append(("SPAN", (0, tot_idx), (1, tot_idx)))  # Span S.No and Mandal Name
 
-            t = Table(table_data, colWidths=col_widths, repeatRows=1)
+            t = Table(table_data, colWidths=col_widths, rowHeights=row_heights, repeatRows=1)
             t.setStyle(TableStyle(table_styles))
             flowables.append(t)
 
