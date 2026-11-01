@@ -607,6 +607,7 @@ TAX_PAGE_HTML = """<!doctype html>
       width: 100%;
       border-collapse: collapse;
       font-size: 0.80rem;
+      border: 1px solid #000000;
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     }
     .pbi-table th {
@@ -615,21 +616,40 @@ TAX_PAGE_HTML = """<!doctype html>
       background: #ffffff;
       color: #0f172a;
       font-weight: 800;
-      padding: 6px 6px;
-      border: 1px solid #cbd5e1;
+      padding: 5px 6px;
+      border: 1px solid #000000;
       text-align: left;
       font-size: 0.77rem;
       white-space: nowrap !important;
       z-index: 5;
     }
     .pbi-table td {
-      padding: 4px 6px;
-      border: 1px solid #e2e8f0;
+      padding: 3px 6px;
+      border: 1px solid #000000;
       color: #1e293b;
       white-space: nowrap;
     }
     .pbi-table tbody tr:hover {
       background: #f8fafc;
+    }
+    .pbi-pct-heatmap-cell {
+      text-align: center !important;
+      font-weight: 800 !important;
+      font-size: 0.88rem !important;
+      padding: 3px 2px !important;
+      border: 1px solid #000000 !important;
+      letter-spacing: -0.2px;
+      line-height: 1.2;
+    }
+    .pbi-pct-heatmap-badge {
+      display: inline-block;
+      min-width: 44px;
+      padding: 2px 6px;
+      font-weight: 800;
+      font-size: 0.82rem;
+      text-align: center;
+      border-radius: 4px;
+      border: 1px solid #000000;
     }
     /* Power BI Data Bars */
     .pbi-databar-td {
@@ -682,14 +702,18 @@ TAX_PAGE_HTML = """<!doctype html>
     @media print {
       @page {
         size: A4 landscape;
-        margin: 6mm 8mm;
+        margin: 4mm 6mm;
+      }
+      *, *::before, *::after {
+        box-sizing: border-box !important;
       }
       html, body {
         width: 100% !important;
-        height: auto !important;
+        height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: white !important;
+        overflow: hidden !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
@@ -700,6 +724,9 @@ TAX_PAGE_HTML = """<!doctype html>
         display: block !important;
         padding: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
       }
       .pbi-container {
         border: none !important;
@@ -707,29 +734,70 @@ TAX_PAGE_HTML = """<!doctype html>
         padding: 0 !important;
         margin: 0 !important;
         background: white !important;
+        width: 100% !important;
+        max-width: 100% !important;
       }
       #pbi-canvas-export {
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
         padding: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
+        height: auto !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .pbi-banner {
+        padding: 3px 6px !important;
+        margin-bottom: 4px !important;
+        font-size: 0.95rem !important;
+        border-width: 1px !important;
       }
       .pbi-row {
+        display: flex !important;
+        flex-direction: row !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        margin-top: 8px !important;
-        gap: 8px !important;
+        margin-top: 4px !important;
+        gap: 6px !important;
       }
       .pbi-card {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
-        padding: 6px !important;
+        padding: 4px 6px !important;
+        box-shadow: none !important;
+        border: 1px solid #CBD5E1 !important;
       }
+      .pbi-card-title {
+        font-size: 0.72rem !important;
+        margin-bottom: 2px !important;
+      }
+      /* Row 1 tight height for single page landscape print */
       .pbi-table-wrap {
-        max-height: 290px !important;
+        max-height: 235px !important;
         overflow: hidden !important;
+      }
+      .pbi-table th, .pbi-table td {
+        padding: 2px 4px !important;
+        font-size: 0.68rem !important;
+      }
+      #chart-dist-clustered {
+        height: 235px !important;
+        max-height: 235px !important;
+      }
+      /* Row 2 tight height for print */
+      #chart-dist-ranking, #chart-dist-donut {
+        height: 165px !important;
+        max-height: 165px !important;
+      }
+      .gauge-svg {
+        height: 120px !important;
+        max-height: 120px !important;
+      }
+      .gauge-center-text {
+        font-size: 26px !important;
       }
     }
   </style>
@@ -945,7 +1013,7 @@ TAX_PAGE_HTML = """<!doctype html>
                         <th class="num-cell" style="width:16%;">Demand</th>
                         <th class="num-cell" style="width:16%;">Collection</th>
                         <th class="num-cell" style="width:16%;">Balance</th>
-                        <th class="num-cell" style="width:16%;">Collection % ▴</th>
+                        <th class="center-cell" style="width:12%; white-space:nowrap; cursor:pointer;" onclick="togglePbiSort('percentage')">%</th>
                       </tr>
                     </thead>
                     <tbody id="pbi-dist-table-body">
@@ -1023,7 +1091,7 @@ TAX_PAGE_HTML = """<!doctype html>
                           <th class="num-cell" style="width:18%;">Demand</th>
                           <th class="num-cell" style="width:18%;">Collection</th>
                           <th class="num-cell" style="width:18%;">Balance</th>
-                          <th class="num-cell" style="width:16%;">Collection % ▴</th>
+                          <th class="center-cell" style="width:14%; white-space:nowrap; cursor:pointer;" onclick="togglePbiMandalSort('percentage')">%</th>
                         </tr>
                       </thead>
                       <tbody id="pbi-mandal-table-body">
@@ -1177,16 +1245,36 @@ TAX_PAGE_HTML = """<!doctype html>
       return { bg: `rgb(${r}, ${g}, ${b})`, text: textCol };
     }
 
+    function getPbiHeatmapStyle(pctVal) {
+      const p = Math.max(0, Math.min(100, Number(pctVal) || 0));
+      const cMin = [216, 59, 1];   // #D83B01
+      const cMid = [233, 173, 9];  // #E9AD09
+      const cMax = [16, 124, 65];  // #107C41
+      let rgb;
+      if (p <= 50) {
+        const t = p / 50;
+        rgb = [
+          Math.round(cMin[0] + (cMid[0] - cMin[0]) * t),
+          Math.round(cMin[1] + (cMid[1] - cMin[1]) * t),
+          Math.round(cMin[2] + (cMid[2] - cMin[2]) * t)
+        ];
+      } else {
+        const t = (p - 50) / 50;
+        rgb = [
+          Math.round(cMid[0] + (cMax[0] - cMid[0]) * t),
+          Math.round(cMid[1] + (cMax[1] - cMid[1]) * t),
+          Math.round(cMid[2] + (cMax[2] - cMid[2]) * t)
+        ];
+      }
+      const bg = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+      const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+      const fg = lum >= 138 ? '#000000' : '#FFFFFF';
+      return { bg, fg, val: Math.round(p) };
+    }
+
     function renderPctCell(pctVal) {
-      const p = Math.max(0, Math.min(100, Math.round(Number(pctVal) || 0)));
-      const { bg } = getGradientColor(p);
-      const fillW = p > 0 ? Math.max(p, 2) : 0;
-      return `<div class="pct-line-col" title="${p}% Collection">
-        <span class="pct-line-val">${p}%</span>
-        <div class="pct-line-track">
-          <div class="pct-line-fill" style="width: ${fillW}%; background: ${bg};"></div>
-        </div>
-      </div>`;
+      const hm = getPbiHeatmapStyle(pctVal);
+      return `<div class="pbi-pct-heatmap-badge" style="background:${hm.bg}; color:${hm.fg};">${hm.val}%</div>`;
     }
 
     function switchTab(tab) {
@@ -1469,8 +1557,23 @@ TAX_PAGE_HTML = """<!doctype html>
       setTimeout(hideStatus, 6000);
     }
 
+    let pbiSortAsc = true;
+    function togglePbiSort() {
+      if (!window._lastPbiData) return;
+      pbiSortAsc = !pbiSortAsc;
+      renderExecutiveVisualReport(window._lastPbiData);
+    }
+
+    let pbiMandalSortAsc = false; // default descending to show top GPs first like Image 2
+    function togglePbiMandalSort() {
+      if (!window._lastPbiData) return;
+      pbiMandalSortAsc = !pbiMandalSortAsc;
+      renderExecutiveVisualReport(window._lastPbiData);
+    }
+
     function renderExecutiveVisualReport(data) {
       if (!data || !data.summary) return;
+      window._lastPbiData = data;
       const s = data.summary;
       const dist = s.district || 'District';
       const mandal = s.mandal;
@@ -1494,7 +1597,7 @@ TAX_PAGE_HTML = """<!doctype html>
         const distTitle = document.getElementById('pbi-dist-banner-title');
         if (distTitle) distTitle.textContent = `DEMAND, COLLECTION, BALANCE OF ${dist.toUpperCase()} DISTRICT`;
 
-        // 1. Populate District Summary Table (sorted ascending by Collection %)
+        // 1. Populate District Summary Table (sortable)
         const distMandals = (data.mandal_abstract || []).map(m => ({
           name: m.mandal,
           gps: m.total_gps,
@@ -1502,38 +1605,29 @@ TAX_PAGE_HTML = """<!doctype html>
           collection: Number(m.collection_total) || 0,
           balance: Number(m.balance_total) || 0,
           percentage: Number(m.percentage) || 0,
-        })).sort((a, b) => a.percentage - b.percentage);
+        })).sort((a, b) => pbiSortAsc ? a.percentage - b.percentage : b.percentage - a.percentage);
 
         let distTbodyHtml = '';
         distMandals.forEach(m => {
-          const p = Math.max(0, Math.min(100, m.percentage));
+          const hm = getPbiHeatmapStyle(m.percentage);
           distTbodyHtml += `<tr>
             <td><strong>${m.name}</strong></td>
             <td class="num-cell">${m.gps}</td>
             <td class="num-cell">${formatInr(m.demand)}</td>
             <td class="num-cell" style="color:#107C41; font-weight:700;">${formatInr(m.collection)}</td>
             <td class="num-cell" style="color:#D83B01;">${formatInr(m.balance)}</td>
-            <td class="pbi-databar-td">
-              <div class="pbi-databar-wrap">
-                <div class="pbi-databar-fill" style="width:${p}%;"></div>
-                <span class="pbi-databar-val">${m.percentage.toFixed(2)}</span>
-              </div>
-            </td>
+            <td class="pbi-pct-heatmap-cell" style="background:${hm.bg}; color:${hm.fg};">${hm.val}</td>
           </tr>`;
         });
         const totPct = Number(s.overall_percentage) || 0;
-        distTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #64748B;">
+        const totHm = getPbiHeatmapStyle(totPct);
+        distTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #000000;">
           <td><strong>Total</strong></td>
           <td class="num-cell">${s.total_gps}</td>
           <td class="num-cell">${formatInr(s.total_demand)}</td>
           <td class="num-cell" style="color:#107C41;">${formatInr(s.total_collection)}</td>
           <td class="num-cell" style="color:#D83B01;">${formatInr(s.total_balance)}</td>
-          <td class="pbi-databar-td">
-            <div class="pbi-databar-wrap">
-              <div class="pbi-databar-fill" style="width:${Math.max(0, Math.min(100, totPct))}%;"></div>
-              <span class="pbi-databar-val">${totPct.toFixed(2)}</span>
-            </div>
-          </td>
+          <td class="pbi-pct-heatmap-cell" style="background:${totHm.bg}; color:${totHm.fg};">${totHm.val}</td>
         </tr>`;
         const tbodyDist = document.getElementById('pbi-dist-table-body');
         if (tbodyDist) tbodyDist.innerHTML = distTbodyHtml;
@@ -1667,43 +1761,34 @@ TAX_PAGE_HTML = """<!doctype html>
           }
         }
 
-        // 1. Populate Mandal GP Table (sorted ascending by Collection %)
+        // 1. Populate Mandal GP Table (sortable, default descending by Collection % matching Image 2)
         const gpRecords = (data.records || []).map(r => ({
           name: r.panchayat,
           demand: Number(r.demand_total) || 0,
           collection: Number(r.collection_total) || 0,
           balance: Number(r.balance_total) || 0,
           percentage: Number(r.calc_percentage !== undefined ? r.calc_percentage : r.percentage) || 0
-        })).sort((a, b) => a.percentage - b.percentage);
+        })).sort((a, b) => pbiMandalSortAsc ? a.percentage - b.percentage : b.percentage - a.percentage);
 
         let mandalTbodyHtml = '';
         gpRecords.forEach(gp => {
-          const p = Math.max(0, Math.min(100, gp.percentage));
+          const hm = getPbiHeatmapStyle(gp.percentage);
           mandalTbodyHtml += `<tr>
             <td><strong>${gp.name}</strong></td>
             <td class="num-cell">${formatInr(gp.demand)}</td>
             <td class="num-cell" style="color:#107C41; font-weight:700;">${formatInr(gp.collection)}</td>
             <td class="num-cell" style="color:#D83B01;">${formatInr(gp.balance)}</td>
-            <td class="pbi-databar-td">
-              <div class="pbi-databar-wrap">
-                <div class="pbi-databar-fill" style="width:${p}%;"></div>
-                <span class="pbi-databar-val">${Math.round(gp.percentage)}</span>
-              </div>
-            </td>
+            <td class="pbi-pct-heatmap-cell" style="background:${hm.bg}; color:${hm.fg};">${hm.val}</td>
           </tr>`;
         });
         const mTotPct = Number(s.overall_percentage) || 0;
-        mandalTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #64748B;">
+        const mTotHm = getPbiHeatmapStyle(mTotPct);
+        mandalTbodyHtml += `<tr class="total-row" style="background:#F1F5F9; font-weight:800; border-top:2px solid #000000;">
           <td><strong>Total</strong></td>
           <td class="num-cell">${formatInr(s.total_demand)}</td>
           <td class="num-cell" style="color:#107C41;">${formatInr(s.total_collection)}</td>
           <td class="num-cell" style="color:#D83B01;">${formatInr(s.total_balance)}</td>
-          <td class="pbi-databar-td">
-            <div class="pbi-databar-wrap">
-              <div class="pbi-databar-fill" style="width:${Math.max(0, Math.min(100, mTotPct))}%;"></div>
-              <span class="pbi-databar-val">${mTotPct.toFixed(2)}</span>
-            </div>
-          </td>
+          <td class="pbi-pct-heatmap-cell" style="background:${mTotHm.bg}; color:${mTotHm.fg};">${mTotHm.val}</td>
         </tr>`;
         const tbodyMandal = document.getElementById('pbi-mandal-table-body');
         if (tbodyMandal) tbodyMandal.innerHTML = mandalTbodyHtml;

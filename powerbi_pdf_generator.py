@@ -56,6 +56,36 @@ def format_inr(val: float | int) -> str:
     return f"-{res}" if n < 0 else res
 
 
+def get_pbi_heatmap_style(pct: float | int) -> tuple[str, str]:
+    """Calculate heat map background color and contrasting text color matching Power BI conditional formatting.
+    Gradient:
+      0% - 25%: #D83B01 (Orange-Red) -> White text
+      26% - 35%: #E27F05 (Bright Orange) -> Black text
+      36% - 60%: #E9AD09 (Golden Amber) -> Black text
+      61% - 100%: #107C41 (Forest Green) -> White text
+    """
+    try:
+        p = max(0.0, min(100.0, float(pct)))
+    except (ValueError, TypeError):
+        p = 0.0
+
+    c_min = (216, 59, 1)    # #D83B01
+    c_mid = (233, 173, 9)   # #E9AD09
+    c_max = (16, 124, 65)   # #107C41
+
+    if p <= 50.0:
+        t = p / 50.0
+        rgb = tuple(int(c_min[i] + (c_mid[i] - c_min[i]) * t) for i in range(3))
+    else:
+        t = (p - 50.0) / 50.0
+        rgb = tuple(int(c_mid[i] + (c_max[i] - c_mid[i]) * t) for i in range(3))
+
+    bg_hex = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+    lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]
+    fg_hex = "#000000" if lum >= 138 else "#FFFFFF"
+    return bg_hex, fg_hex
+
+
 def make_pbi_databar(pct: float | int, width: float = 48.0, height: float = 9.5) -> Drawing:
     """Draw a soft-blue Power BI style horizontal data bar with bold percentage text."""
     try:
@@ -208,37 +238,12 @@ def draw_district_page(c: canvas.Canvas, district_name: str, data: dict[str, Any
 
     # Sort mandals ascending by percentage
     sorted_m = sorted(mandals, key=lambda m: float(m.get("percentage", 0)))
-    table_data = [["Mandal Name", "GPs", "Demand", "Collection", "Balance", "Collection %"]]
-    for m in sorted_m:
-        p = float(m.get("percentage", 0))
-        table_data.append([
-            m.get("mandal", ""),
-            str(m.get("total_gps", "")),
-            format_inr(m.get("demand_total", 0)),
-            format_inr(m.get("collection_total", 0)),
-            format_inr(m.get("balance_total", 0)),
-            make_pbi_databar(p, width=54, height=9),
-        ])
-    # Total row
-    table_data.append([
-        "Total",
-        str(s.get("total_gps", "")),
-        format_inr(s.get("total_demand", 0)),
-        format_inr(s.get("total_collection", 0)),
-        format_inr(s.get("total_balance", 0)),
-        make_pbi_databar(tot_pct, width=54, height=9),
-    ])
-
-    n_rows = len(table_data)
-    row_h = 278.0 / n_rows
-    fsize = 6.0 if n_rows > 25 else 6.6
-
-    t_style = TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#CBD5E1")),
+    table_data = [["Mandal Name", "GPs", "Demand", "Collection", "Balance", "%"]]
+    style_cmds = [
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#000000")),
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F8FAFC")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), fsize),
         ("ALIGN", (0, 0), (0, -1), "LEFT"),
         ("ALIGN", (1, 0), (-2, -1), "RIGHT"),
         ("ALIGN", (-1, 0), (-1, -1), "CENTER"),
@@ -251,8 +256,45 @@ def draw_district_page(c: canvas.Canvas, district_name: str, data: dict[str, Any
         ("TEXTCOLOR", (4, 1), (4, -1), colors.HexColor("#D83B01")),  # Balance column orange
         ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#F1F5F9")),  # Total row
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+    ]
+
+    for idx, m in enumerate(sorted_m, start=1):
+        p = float(m.get("percentage", 0))
+        bg_hex, fg_hex = get_pbi_heatmap_style(p)
+        table_data.append([
+            m.get("mandal", ""),
+            str(m.get("total_gps", "")),
+            format_inr(m.get("demand_total", 0)),
+            format_inr(m.get("collection_total", 0)),
+            format_inr(m.get("balance_total", 0)),
+            str(int(round(p))),
+        ])
+        style_cmds.append(("BACKGROUND", (5, idx), (5, idx), colors.HexColor(bg_hex)))
+        style_cmds.append(("TEXTCOLOR", (5, idx), (5, idx), colors.HexColor(fg_hex)))
+        style_cmds.append(("FONTNAME", (5, idx), (5, idx), "Helvetica-Bold"))
+
+    # Total row
+    tot_row_idx = len(table_data)
+    tot_bg, tot_fg = get_pbi_heatmap_style(tot_pct)
+    table_data.append([
+        "Total",
+        str(s.get("total_gps", "")),
+        format_inr(s.get("total_demand", 0)),
+        format_inr(s.get("total_collection", 0)),
+        format_inr(s.get("total_balance", 0)),
+        str(int(round(tot_pct))),
     ])
-    col_w = [90, 26, 68, 68, 68, 65]
+    style_cmds.append(("BACKGROUND", (5, tot_row_idx), (5, tot_row_idx), colors.HexColor(tot_bg)))
+    style_cmds.append(("TEXTCOLOR", (5, tot_row_idx), (5, tot_row_idx), colors.HexColor(tot_fg)))
+    style_cmds.append(("FONTNAME", (5, tot_row_idx), (5, tot_row_idx), "Helvetica-Bold"))
+
+    n_rows = len(table_data)
+    row_h = 278.0 / n_rows
+    fsize = 6.0 if n_rows > 25 else 6.6
+    style_cmds.append(("FONTSIZE", (0, 0), (-1, -1), fsize))
+
+    t_style = TableStyle(style_cmds)
+    col_w = [96, 26, 73, 73, 73, 44]
     table = Table(table_data, colWidths=col_w, rowHeights=[row_h] * n_rows, style=t_style)
     table.wrapOn(c, 385, 278)
     table.drawOn(c, 20, 260)
@@ -325,35 +367,12 @@ def draw_mandal_page(c: canvas.Canvas, mandal_name: str, m_data: dict[str, Any])
     c.rect(20, 192, 320, 346, fill=1, stroke=1)
 
     sorted_gps = sorted(gps, key=lambda r: float(r.get("calc_percentage", r.get("percentage", 0))))
-    table_data = [["Panchayat", "Demand", "Collection", "Balance", "Collection %"]]
-    for r in sorted_gps:
-        p = float(r.get("calc_percentage", r.get("percentage", 0)))
-        table_data.append([
-            r.get("panchayat", ""),
-            format_inr(r.get("demand_total", 0)),
-            format_inr(r.get("collection_total", 0)),
-            format_inr(r.get("balance_total", 0)),
-            make_pbi_databar(p, width=48, height=8.5),
-        ])
-    # Total row
-    table_data.append([
-        "Total",
-        format_inr(s.get("total_demand", 0)),
-        format_inr(s.get("total_collection", 0)),
-        format_inr(s.get("total_balance", 0)),
-        make_pbi_databar(m_pct, width=48, height=8.5),
-    ])
-
-    n_rows = len(table_data)
-    row_h = 346.0 / n_rows
-    fsize = 5.2 if n_rows > 30 else 6.2
-
-    t_style = TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD5E1")),
+    table_data = [["Panchayat", "Demand", "Collection", "Balance", "%"]]
+    style_cmds = [
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#000000")),
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F8FAFC")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0F172A")),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, -1), fsize),
         ("ALIGN", (0, 0), (0, -1), "LEFT"),
         ("ALIGN", (1, 0), (-2, -1), "RIGHT"),
         ("ALIGN", (-1, 0), (-1, -1), "CENTER"),
@@ -366,8 +385,43 @@ def draw_mandal_page(c: canvas.Canvas, mandal_name: str, m_data: dict[str, Any])
         ("TEXTCOLOR", (3, 1), (3, -1), colors.HexColor("#D83B01")),
         ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#F1F5F9")),
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+    ]
+
+    for idx, r in enumerate(sorted_gps, start=1):
+        p = float(r.get("calc_percentage", r.get("percentage", 0)))
+        bg_hex, fg_hex = get_pbi_heatmap_style(p)
+        table_data.append([
+            r.get("panchayat", ""),
+            format_inr(r.get("demand_total", 0)),
+            format_inr(r.get("collection_total", 0)),
+            format_inr(r.get("balance_total", 0)),
+            str(int(round(p))),
+        ])
+        style_cmds.append(("BACKGROUND", (4, idx), (4, idx), colors.HexColor(bg_hex)))
+        style_cmds.append(("TEXTCOLOR", (4, idx), (4, idx), colors.HexColor(fg_hex)))
+        style_cmds.append(("FONTNAME", (4, idx), (4, idx), "Helvetica-Bold"))
+
+    # Total row
+    tot_row_idx = len(table_data)
+    m_tot_bg, m_tot_fg = get_pbi_heatmap_style(m_pct)
+    table_data.append([
+        "Total",
+        format_inr(s.get("total_demand", 0)),
+        format_inr(s.get("total_collection", 0)),
+        format_inr(s.get("total_balance", 0)),
+        str(int(round(m_pct))),
     ])
-    col_w = [90, 56, 56, 56, 62]
+    style_cmds.append(("BACKGROUND", (4, tot_row_idx), (4, tot_row_idx), colors.HexColor(m_tot_bg)))
+    style_cmds.append(("TEXTCOLOR", (4, tot_row_idx), (4, tot_row_idx), colors.HexColor(m_tot_fg)))
+    style_cmds.append(("FONTNAME", (4, tot_row_idx), (4, tot_row_idx), "Helvetica-Bold"))
+
+    n_rows = len(table_data)
+    row_h = 346.0 / n_rows
+    fsize = 5.2 if n_rows > 30 else 6.2
+    style_cmds.append(("FONTSIZE", (0, 0), (-1, -1), fsize))
+
+    t_style = TableStyle(style_cmds)
+    col_w = [106, 58, 58, 58, 40]
     table = Table(table_data, colWidths=col_w, rowHeights=[row_h] * n_rows, style=t_style)
     table.wrapOn(c, 320, 346)
     table.drawOn(c, 20, 192)
