@@ -17,6 +17,8 @@ from report_generator import (
     _clean_name,
     _format_time_only,
     analyze_attendance,
+    detect_file_metadata,
+    generate_mandal_pdf,
     generate_pdf,
     parse_ps_directory_file,
     merge_ps_directories,
@@ -624,3 +626,51 @@ def test_local_tracker_claims_once_and_recovers_a_stale_processing_job(tmp_path:
     assert tracker.claim("claim-test") is False
     tracker.update("claim-test", notes="Processing started at 2000-01-01T00:00:00+00:00")
     assert tracker.claim("claim-test") is True
+
+
+def test_mandal_pdf_generation_and_metadata_detection(tmp_path: Path):
+    source_bytes = bytes_for(attendance_rows(), ".xlsx")
+    meta = detect_file_metadata("attendance.xlsx", source_bytes)
+    assert meta["district_name"] == "Khammam"
+    assert "Mandal A" in meta["mandals"]
+    assert "Mandal B" in meta["mandals"]
+
+    report = process_attendance_file("attendance.xlsx", source_bytes)
+    out_pdf = tmp_path / "mandal_a.pdf"
+    generate_mandal_pdf(report, out_pdf, mandal_name="Mandal A")
+    assert out_pdf.exists()
+    assert out_pdf.stat().st_size > 1000
+
+    reader = PdfReader(str(out_pdf))
+    assert len(reader.pages) >= 2
+    p1 = reader.pages[0].extract_text()
+    assert "MANDAL A" in p1
+    assert "Gram Panchayat Attendance" in p1
+
+
+def test_web_upload_mandal_mode_downloads_mandal_pdf(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    client = TestClient(create_app(make_settings(tmp_path)))
+    source_bytes = bytes_for(attendance_rows(), ".xlsx")
+
+    # Test metadata detection endpoint
+    detect_resp = client.post(
+        "/api/web/detect-mandals",
+        files={"file": ("attendance.xlsx", source_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert detect_resp.status_code == 200
+    data = detect_resp.json()
+    assert data["district_name"] == "Khammam"
+    assert "Mandal A" in data["mandals"]
+
+    # Test Mandal mode report creation
+    create_resp = client.post(
+        "/api/web/reports",
+        files={"file": ("attendance.xlsx", source_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+        data={"report_mode": "mandal", "mandal_name": "Mandal A"},
+    )
+    assert create_resp.status_code == 200
+    job_id = create_resp.json()["job_id"]
+    download_resp = client.get(f"/api/web/reports/{job_id}/download")
+    assert download_resp.status_code == 200
+    assert "Mandal_A_Attendance_Report" in download_resp.headers["content-disposition"]
+
