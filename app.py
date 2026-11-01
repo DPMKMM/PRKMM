@@ -140,12 +140,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <div class="hint">Export of absent secretaries. Not required if all secretaries submitted attendance.</div>
           </div>
 
-          <div class="field-group">
-            <label for="requested-by">Your name or office (optional)</label>
-            <input id="requested-by" name="RequestedBy" type="text" maxlength="320"
-              autocomplete="name" placeholder="E.g., DPO Office / Collectorate">
-          </div>
-
           <div class="actions">
             <button id="generate-button" type="submit">Generate and download report</button>
           </div>
@@ -302,8 +296,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         if (pres) data.append('presentees_file', pres);
         const abs = document.getElementById('absentees-file').files[0];
         if (abs) data.append('absentees_file', abs);
-        const reqBy = document.getElementById('requested-by').value.trim();
-        if (reqBy) data.append('RequestedBy', reqBy);
         runReportJob(data, document.getElementById('generate-button'), document.getElementById('report-message'), 'District_PS_Attendance_Report.pdf');
       });
 
