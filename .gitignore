@@ -16,5 +16,5 @@ temp/
 secrets/
 *.pem
 *.p12
-Khammam_PS_Attendance_Report*.pdf
-Khammam_PS_Attendance_*.pdf
+*.pdf
+push_to_render.bat
