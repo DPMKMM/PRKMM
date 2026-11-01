@@ -1550,6 +1550,14 @@ TAX_PAGE_HTML = """<!doctype html>
       }
     }
 
+    function getTodayDateStr() {
+      const now = new Date();
+      const d = String(now.getDate()).padStart(2, '0');
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const y = now.getFullYear();
+      return `${d}-${m}-${y}`;
+    }
+
     function updateActionLinks() {
       const dist = document.getElementById('district-select').value;
       if (!dist) return;
@@ -1569,7 +1577,8 @@ TAX_PAGE_HTML = """<!doctype html>
       if (dlPdfBtn) {
         dlPdfBtn.onclick = (e) => {
           e.preventDefault();
-          const fname = isAllMandals ? `${dist}_Official_DCB_Report.pdf` : `${dist}_${mandal}_Official_DCB_Report.pdf`;
+          const dateStr = getTodayDateStr();
+          const fname = isAllMandals ? `${dist}_House_Tax_DCB_Report_${dateStr}.pdf` : `${dist}_${mandal}_House_Tax_DCB_Report_${dateStr}.pdf`;
           const lbl = isAllMandals ? `Official DCB PDF (${dist} District)` : `Official DCB PDF (${mandal} Mandal)`;
           triggerManagedDownload(pdfDlUrl, fname, lbl, dlPdfBtn);
         };
@@ -1578,7 +1587,8 @@ TAX_PAGE_HTML = """<!doctype html>
       if (dlExcelBtn) {
         dlExcelBtn.onclick = (e) => {
           e.preventDefault();
-          triggerManagedDownload(excelUrl, `${dist}_House_Tax_DCB.xlsx`, 'Consolidated Excel', dlExcelBtn);
+          const dateStr = getTodayDateStr();
+          triggerManagedDownload(excelUrl, `${dist}_House_Tax_DCB_${dateStr}.xlsx`, 'Consolidated Excel', dlExcelBtn);
         };
       }
       const dlCsvBtn = document.getElementById('btn-download-csv');
@@ -1919,7 +1929,8 @@ TAX_PAGE_HTML = """<!doctype html>
       const mandalParam = isDistrictView ? '' : `&mandal=${encodeURIComponent(mandal)}`;
 
       const dlUrl = `/api/tax/powerbi-report.pdf?district=${encodeURIComponent(dist)}${mandalParam}`;
-      const fname = isDistrictView ? `${dist}_PowerBI_DCB_Report.pdf` : `${dist}_${mandal}_PowerBI_DCB_Report.pdf`;
+      const dateStr = getTodayDateStr();
+      const fname = isDistrictView ? `${dist}_PowerBI_DCB_Report_${dateStr}.pdf` : `${dist}_${mandal}_PowerBI_DCB_Report_${dateStr}.pdf`;
       const label = isDistrictView ? `Power BI Report (${dist} + All Mandals)` : `Power BI Report (${mandal} Mandal)`;
 
       const btn = triggerBtn || document.getElementById('btn-download-pbi-pdf');

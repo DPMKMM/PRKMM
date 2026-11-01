@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import io
 import math
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -146,10 +146,13 @@ def get_or_generate_dcb_pdf(
 
     reports_dir = Path(__file__).resolve().parent / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = reports_dir / f"{safe_dist}{safe_mandal}_House_Tax_DCB_Report.pdf"
+    india_now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    date_str = india_now.strftime("%d-%m-%Y")
+    pdf_filename = f"{safe_dist}{safe_mandal}_House_Tax_DCB_Report_{date_str}.pdf"
+    pdf_path = reports_dir / pdf_filename
 
     if not force_regenerate and pdf_path.exists() and pdf_path.stat().st_size > 1000:
-        return pdf_path.name, pdf_path.read_bytes()
+        return pdf_filename, pdf_path.read_bytes()
 
     content = generate_dcb_pdf(
         district_name=district_name,
@@ -157,7 +160,7 @@ def get_or_generate_dcb_pdf(
         output_path_or_buffer=pdf_path,
         report_date_str=report_date_str,
     )
-    return pdf_path.name, content
+    return pdf_filename, content
 
 
 def generate_dcb_pdf(

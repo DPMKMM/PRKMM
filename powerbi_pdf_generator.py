@@ -12,6 +12,7 @@ Each page strictly fits onto a single A4 Landscape canvas (841.89 x 595.28 pt).
 from __future__ import annotations
 
 import io
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional, Any
 
@@ -521,10 +522,13 @@ def get_or_generate_powerbi_pdf(
     is_single_mandal = bool(mandal_name and mandal_name.strip().lower() not in ("all", "all mandals", ""))
     safe_mandal = f"_{mandal_name.strip().replace(' ', '_').title()}" if (is_single_mandal and mandal_name) else ""
 
+    india_now = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    date_str = india_now.strftime("%d-%m-%Y")
+
     reports_dir = Path(__file__).resolve().parent / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
-    pdf_filename = f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report.pdf"
-    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_v5.pdf"
+    pdf_filename = f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}.pdf"
+    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}_v5.pdf"
 
     if not force_regenerate and cache_path.exists() and cache_path.stat().st_size > 10_000:
         return pdf_filename, cache_path.read_bytes()
