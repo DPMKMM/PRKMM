@@ -1583,14 +1583,19 @@ def create_app(
 
     @api.post("/api/naresh/login", include_in_schema=False)
     def naresh_login(
-        username: str = Form(default="DPOA3698"),
-        password: str = Form(default="Dpm@123"),
+        username: str = Form(...),
+        password: str = Form(...),
     ) -> dict[str, Any]:
+        u = username.strip() if username else ""
+        p = password.strip() if password else ""
+        if not u or not p:
+            raise HTTPException(status_code=400, detail="Please enter both User ID and Password.")
+
         cfg_dir = BASE_DIR / "automate_epts"
         cfg_dir.mkdir(parents=True, exist_ok=True)
         cfg_file = cfg_dir / "config.json"
         try:
-            cfg_file.write_text(json.dumps({"username": username.strip(), "password": password.strip()}, indent=4), encoding="utf-8")
+            cfg_file.write_text(json.dumps({"username": u, "password": p}, indent=4), encoding="utf-8")
         except Exception:
             pass
 

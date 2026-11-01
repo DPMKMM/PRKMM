@@ -105,7 +105,7 @@ NARESH_PAGE_HTML = """<!doctype html>
       background: linear-gradient(135deg, #062b1f 0%, #0c3829 55%, #154c38 100%);
       color: white;
       border-radius: 16px;
-      padding: 30px 32px;
+      padding: 28px 32px;
       box-shadow: 0 6px 20px rgba(12, 56, 41, 0.25);
       margin-bottom: 24px;
       position: relative;
@@ -140,8 +140,8 @@ NARESH_PAGE_HTML = """<!doctype html>
       line-height: 1.25;
     }
     .hero-subtitle {
-      margin: 0 0 18px 0;
-      font-size: 1rem;
+      margin: 0 0 16px 0;
+      font-size: 0.98rem;
       color: #d1fae5;
       max-width: 820px;
       line-height: 1.5;
@@ -150,7 +150,6 @@ NARESH_PAGE_HTML = """<!doctype html>
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 22px;
     }
     .badge {
       display: inline-flex;
@@ -188,13 +187,7 @@ NARESH_PAGE_HTML = """<!doctype html>
       color: white;
     }
 
-    /* Actions Bar */
-    .actions-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-    }
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -742,7 +735,7 @@ NARESH_PAGE_HTML = """<!doctype html>
       </div>
       <h1 class="hero-title">Automated DSR Report &amp; e-Panchayat Robot Station</h1>
       <p class="hero-subtitle">
-        Zero manual downloading. Login with your e-Panchayat credentials below, enter your OTP, select the target DSR date, and the robot downloads and compiles the official 7-section Attendance &amp; DSR PDF in the background.
+        Zero manual downloading. Enter your e-Panchayat credentials below, enter your OTP, select the target DSR date, and the robot downloads and compiles the official 7-section Attendance &amp; DSR PDF in the background.
       </p>
 
       <div class="hero-badges">
@@ -754,26 +747,11 @@ NARESH_PAGE_HTML = """<!doctype html>
           🏛️ Source: EPTS (DPOA3698)
         </span>
         <span class="badge badge-info" id="report-date-badge">
-          📅 Target Date: Loading...
+          📅 Target Date: Select Date Below
         </span>
         <span class="badge badge-info">
           🛡️ Khammam District (571 GPs)
         </span>
-      </div>
-
-      <div class="actions-bar">
-        <button type="button" class="btn btn-gold" onclick="loadAndScrollToViewer()">
-          👁️ View Generated Official PDF
-        </button>
-        <a id="btn-download-pdf" class="btn btn-white" href="/api/naresh/download" target="_blank">
-          📥 Download Official PDF
-        </a>
-        <a class="btn btn-outline" href="/#reports-district?auto=true">
-          📊 Open District View
-        </a>
-        <a class="btn btn-outline" href="/#reports-mandal?auto=true">
-          📋 Mandal View
-        </a>
       </div>
     </section>
 
@@ -820,12 +798,12 @@ NARESH_PAGE_HTML = """<!doctype html>
         <div class="form-row">
           <div class="form-group">
             <label>User ID</label>
-            <input type="text" id="auto-user" value="DPOA3698" placeholder="e.g. DPOA3698" required>
+            <input type="text" id="auto-user" placeholder="Enter User ID (e.g. DPOA3698)" autocomplete="username" required>
           </div>
           <div class="form-group">
             <label>Password</label>
             <div class="password-wrapper">
-              <input type="password" id="auto-pwd" value="Dpm@123" placeholder="Password" required>
+              <input type="password" id="auto-pwd" placeholder="Enter Password" autocomplete="current-password" required>
               <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility()" title="Toggle visibility">👁️</button>
             </div>
           </div>
@@ -833,9 +811,6 @@ NARESH_PAGE_HTML = """<!doctype html>
         <div class="form-actions" style="display:flex; gap:12px; flex-wrap:wrap;">
           <button type="button" class="btn btn-gold" id="btn-login" onclick="startDepartmentLogin()">
             🔐 Login to e-Panchayat &amp; Generate OTP
-          </button>
-          <button type="button" class="btn btn-white" onclick="skipToLiveFeed()">
-            ⚡ Instant Generate (Use Pre-synced Daily Feed)
           </button>
         </div>
       </div>
@@ -932,86 +907,93 @@ NARESH_PAGE_HTML = """<!doctype html>
       </div>
     </section>
 
-    <!-- Metrics Cards Grid -->
-    <section class="metrics-grid" id="metrics-container">
-      <div class="metric-card accent">
-        <div class="metric-label">Total Gram Panchayats</div>
-        <div class="metric-value" id="val-total-gps">571</div>
-        <div class="metric-sub">Khammam District Total</div>
-      </div>
-      <div class="metric-card success">
-        <div class="metric-label">Attendance Submitted</div>
-        <div class="metric-value" id="val-att-submitted">560</div>
-        <div class="metric-sub" id="sub-att-pct">98.1% Compliance</div>
-      </div>
-      <div class="metric-card info">
-        <div class="metric-label">DSR Entered</div>
-        <div class="metric-value" id="val-dsr-entered">404</div>
-        <div class="metric-sub" id="sub-dsr-pct">70.8% of Eligible (415)</div>
-      </div>
-      <div class="metric-card success">
-        <div class="metric-label">Present Before 9 AM</div>
-        <div class="metric-value" id="val-before-9">85</div>
-        <div class="metric-sub">Timely PS Attendance</div>
-      </div>
-      <div class="metric-card warning">
-        <div class="metric-label">On Leave / Training</div>
-        <div class="metric-value" id="val-on-leave">145</div>
-        <div class="metric-sub">74 Leave + 71 Training</div>
-      </div>
-      <div class="metric-card danger">
-        <div class="metric-label">Attendance Pending</div>
-        <div class="metric-value" id="val-pending">11</div>
-        <div class="metric-sub">Requires Follow-up</div>
-      </div>
-    </section>
+    <!-- ========================================================
+         RESULTS SECTION (Hidden initially until report is generated)
+         ======================================================== -->
+    <div id="results-section" style="display: none;">
 
-    <!-- PDF Viewer Card -->
-    <section class="viewer-card" id="viewer-section">
-      <div class="viewer-header">
-        <div class="viewer-title">
-          <span>📄</span>
-          <span>Official 7-Section District Attendance &amp; DSR Monitoring PDF</span>
+      <!-- Metrics Cards Grid -->
+      <section class="metrics-grid" id="metrics-container">
+        <div class="metric-card accent">
+          <div class="metric-label">Total Gram Panchayats</div>
+          <div class="metric-value" id="val-total-gps">571</div>
+          <div class="metric-sub">Khammam District Total</div>
         </div>
-        <div class="viewer-actions">
-          <a class="btn btn-gold btn-sm" href="/api/naresh/download" target="_blank">
-            📥 Download PDF
-          </a>
-          <button type="button" class="btn btn-white btn-sm" onclick="refreshViewer()">
-            🔄 Reload Preview
-          </button>
+        <div class="metric-card success">
+          <div class="metric-label">Attendance Submitted</div>
+          <div class="metric-value" id="val-att-submitted">560</div>
+          <div class="metric-sub" id="sub-att-pct">98.1% Compliance</div>
         </div>
-      </div>
-      <iframe id="pdf-frame" class="pdf-frame" src="/api/naresh/view"></iframe>
-    </section>
+        <div class="metric-card info">
+          <div class="metric-label">DSR Entered</div>
+          <div class="metric-value" id="val-dsr-entered">404</div>
+          <div class="metric-sub" id="sub-dsr-pct">70.8% of Eligible (415)</div>
+        </div>
+        <div class="metric-card success">
+          <div class="metric-label">Present Before 9 AM</div>
+          <div class="metric-value" id="val-before-9">85</div>
+          <div class="metric-sub">Timely PS Attendance</div>
+        </div>
+        <div class="metric-card warning">
+          <div class="metric-label">On Leave / Training</div>
+          <div class="metric-value" id="val-on-leave">145</div>
+          <div class="metric-sub">74 Leave + 71 Training</div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-label">Attendance Pending</div>
+          <div class="metric-value" id="val-pending">11</div>
+          <div class="metric-sub">Requires Follow-up</div>
+        </div>
+      </section>
 
-    <!-- Mandal Breakdown Table Card -->
-    <section class="table-card">
-      <div class="table-header">
-        <div class="table-title">Mandal-wise Attendance &amp; DSR Performance (20 Mandals)</div>
-        <input type="text" id="mandal-search" class="search-input" placeholder="Search Mandal..." onkeyup="filterMandals()">
-      </div>
-      <div class="table-responsive">
-        <table id="mandals-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Mandal Name</th>
-              <th class="text-center">Total GPs</th>
-              <th class="text-center">Submitted</th>
-              <th class="text-center">Attendance %</th>
-              <th class="text-center">Before 9 AM</th>
-              <th class="text-center">On Leave / Meet</th>
-              <th class="text-center">Pending</th>
-              <th class="text-center">DSR Entered</th>
-            </tr>
-          </thead>
-          <tbody id="mandals-tbody">
-            <tr><td colspan="9" class="text-center" style="padding: 24px;">Loading live mandal performance data...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+      <!-- PDF Viewer Card -->
+      <section class="viewer-card" id="viewer-section">
+        <div class="viewer-header">
+          <div class="viewer-title">
+            <span>📄</span>
+            <span>Official 7-Section District Attendance &amp; DSR Monitoring PDF</span>
+          </div>
+          <div class="viewer-actions">
+            <a class="btn btn-gold btn-sm" href="/api/naresh/download" target="_blank">
+              📥 Download PDF
+            </a>
+            <button type="button" class="btn btn-white btn-sm" onclick="refreshViewer()">
+              🔄 Reload Preview
+            </button>
+          </div>
+        </div>
+        <iframe id="pdf-frame" class="pdf-frame" src="about:blank"></iframe>
+      </section>
+
+      <!-- Mandal Breakdown Table Card -->
+      <section class="table-card">
+        <div class="table-header">
+          <div class="table-title">Mandal-wise Attendance &amp; DSR Performance (20 Mandals)</div>
+          <input type="text" id="mandal-search" class="search-input" placeholder="Search Mandal..." onkeyup="filterMandals()">
+        </div>
+        <div class="table-responsive">
+          <table id="mandals-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Mandal Name</th>
+                <th class="text-center">Total GPs</th>
+                <th class="text-center">Submitted</th>
+                <th class="text-center">Attendance %</th>
+                <th class="text-center">Before 9 AM</th>
+                <th class="text-center">On Leave / Meet</th>
+                <th class="text-center">Pending</th>
+                <th class="text-center">DSR Entered</th>
+              </tr>
+            </thead>
+            <tbody id="mandals-tbody">
+              <tr><td colspan="9" class="text-center" style="padding: 24px;">Loading live mandal performance data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
 
   </main>
 
@@ -1136,11 +1118,6 @@ NARESH_PAGE_HTML = """<!doctype html>
       }
     }
 
-    function skipToLiveFeed() {
-      goToStep(3);
-      updateStatus('Ready to compile report from pre-synced portal feed.', 'success');
-    }
-
     async function runAutomatedGeneration() {
       const mod = document.getElementById('auto-module').value;
       const date = document.getElementById('auto-date').value;
@@ -1197,6 +1174,13 @@ NARESH_PAGE_HTML = """<!doctype html>
         titleEl.innerText = 'Report Generation Completed!';
         banner.style.display = 'block';
         updateStatus('Report generated successfully!', 'success');
+
+        // Reveal the results section (metrics, viewer, mandals table)
+        const resultsEl = document.getElementById('results-section');
+        if (resultsEl) {
+          resultsEl.style.display = 'block';
+          resultsEl.scrollIntoView({ behavior: 'smooth' });
+        }
 
         // Reload data and refresh viewer
         await loadNareshData();
@@ -1298,8 +1282,6 @@ NARESH_PAGE_HTML = """<!doctype html>
     const today = new Date().toISOString().split('T')[0];
     const datePicker = document.getElementById('auto-date');
     if (datePicker) datePicker.value = today;
-
-    window.addEventListener('DOMContentLoaded', loadNareshData);
   </script>
 </body>
 </html>
