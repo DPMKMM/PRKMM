@@ -554,9 +554,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         <div id="tab-mandal" class="tab-content">
           <div class="notice">
             <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
-            <div style="margin-top: 6px; font-size: 0.9em; color: #167451;">
-              💡 <strong>Automatic PS Directory Linking:</strong> Panchayat Secretary names and mobile numbers are automatically populated from the names data uploaded in the District Report module.
-            </div>
           </div>
 
           <form id="mandal-form">

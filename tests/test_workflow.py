@@ -679,26 +679,11 @@ def test_web_upload_mandal_mode_downloads_mandal_pdf(tmp_path: Path, monkeypatch
     assert "Mandal_A_Attendance_Report" in download_resp.headers["content-disposition"]
 
 
-def test_mandal_inherits_district_ps_directory_and_conditional_rendering(tmp_path: Path):
+def test_mandal_report_excludes_ps_name_and_mobile(tmp_path: Path):
     app = create_app(make_settings(tmp_path))
     client = TestClient(app)
     raw_bytes = bytes_for(attendance_rows(), ".xlsx")
-    pres_bytes = bytes_for(presentees_rows(), ".xlsx")
-    abs_bytes = bytes_for(absentees_rows(), ".xlsx")
 
-    # Step 1: Upload in District mode with Presentees & Absentees
-    resp_dist = client.post(
-        "/api/web/reports",
-        files={
-            "file": ("attendance.xlsx", raw_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-            "presentees_file": ("presentees.xlsx", pres_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-            "absentees_file": ("absentees.xlsx", abs_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-        },
-        data={"report_mode": "district"},
-    )
-    assert resp_dist.status_code == 200
-
-    # Step 2: Upload in Mandal mode with RAW file ONLY
     resp_mandal = client.post(
         "/api/web/reports",
         files={
@@ -714,6 +699,8 @@ def test_mandal_inherits_district_ps_directory_and_conditional_rendering(tmp_pat
     reader = PdfReader(BytesIO(download_resp.content))
     text = "".join(p.extract_text() for p in reader.pages)
     assert "MANDAL A" in text
-    assert "Panchayat Secretary Name" in text
+    assert "Attendance Pending GPs" in text
+    assert "Panchayat Secretary Name" not in text
+    assert "Mobile Number" not in text
 
 

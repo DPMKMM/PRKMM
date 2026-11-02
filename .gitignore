@@ -23,3 +23,4 @@ automate_epts/browser_profile/
 automate_epts/*.png
 automate_epts/otp.txt
 automate_epts/command.txt
+automate_epts/downloads/

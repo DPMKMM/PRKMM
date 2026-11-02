@@ -1394,7 +1394,6 @@ def generate_mandal_pdf(report: ReportData, output_path: str | Path, mandal_name
         canvas.restoreState()
 
     # Filtered metrics for target mandal
-    has_ps_info = any(bool(r.get("ps_name") or r.get("mobile")) for r in mandal_gps)
     submitted_gps = [r for r in mandal_gps if r.get("submitted")]
     pending_gps = [r for r in mandal_gps if r.get("is_pending")]
     after_9_gps = [r for r in mandal_gps if r.get("after_9")]
@@ -1438,32 +1437,17 @@ def generate_mandal_pdf(report: ReportData, output_path: str | Path, mandal_name
 
     # 2. Attendance Pending GPs List
     story.append(Paragraph(f"2. Attendance Pending GPs (Total: {len(pending_gps)})", styles["MandalSectionTitle"]))
-    if has_ps_info:
-        pending_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status", "Panchayat Secretary Name", "Mobile Number"]
-        pending_widths = [12 * mm, 56 * mm, 42 * mm, 42 * mm, available_width - 152 * mm]
-        pending_table_rows: list[list[Any]] = []
-        for idx, r in enumerate(pending_gps, start=1):
-            pending_table_rows.append([
-                idx, r["gp"],
-                '<font color="#C00000"><b>Attendance Pending</b></font>',
-                r.get("ps_name") or "-",
-                r.get("mobile") or "-",
-            ])
-        if not pending_table_rows:
-            pending_table_rows = [["-", "All Gram Panchayats have submitted morning attendance.", "-", "-", "-"]]
-        pending_tbl = make_table(pending_headers, pending_table_rows, pending_widths, left_columns=(1, 3))
-    else:
-        pending_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status"]
-        pending_widths = [14 * mm, 95 * mm, available_width - 109 * mm]
-        pending_table_rows = []
-        for idx, r in enumerate(pending_gps, start=1):
-            pending_table_rows.append([
-                idx, r["gp"],
-                '<font color="#C00000"><b>Attendance Pending</b></font>',
-            ])
-        if not pending_table_rows:
-            pending_table_rows = [["-", "All Gram Panchayats have submitted morning attendance.", "-"]]
-        pending_tbl = make_table(pending_headers, pending_table_rows, pending_widths, left_columns=(1,))
+    pending_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Status"]
+    pending_widths = [14 * mm, 95 * mm, available_width - 109 * mm]
+    pending_table_rows: list[list[Any]] = []
+    for idx, r in enumerate(pending_gps, start=1):
+        pending_table_rows.append([
+            idx, r["gp"],
+            '<font color="#C00000"><b>Attendance Pending</b></font>',
+        ])
+    if not pending_table_rows:
+        pending_table_rows = [["-", "All Gram Panchayats have submitted morning attendance.", "-"]]
+    pending_tbl = make_table(pending_headers, pending_table_rows, pending_widths, left_columns=(1,))
 
     if not pending_gps:
         pending_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
@@ -1492,33 +1476,18 @@ def generate_mandal_pdf(report: ReportData, output_path: str | Path, mandal_name
 
     # 4. GPs Submitted Attendance After 9 AM
     story.append(Paragraph(f"4. GPs Submitted Attendance After 9 AM (Total: {len(after_9_gps)})", styles["MandalSectionTitle"]))
-    if has_ps_info:
-        after9_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Time", "Status", "Mobile Number"]
-        after9_widths = [12 * mm, 56 * mm, 38 * mm, 42 * mm, available_width - 148 * mm]
-        after9_table_rows: list[list[Any]] = []
-        for idx, r in enumerate(after_9_gps, start=1):
-            after9_table_rows.append([
-                idx, r["gp"],
-                f'<font color="#C00000"><b>{r.get("time_only")}</b></font>',
-                r.get("status") or "Present",
-                r.get("mobile") or "-",
-            ])
-        if not after9_table_rows:
-            after9_table_rows = [["-", "No Gram Panchayats submitted attendance after 9 AM.", "-", "-", "-"]]
-        after9_tbl = make_table(after9_headers, after9_table_rows, after9_widths, left_columns=(1,))
-    else:
-        after9_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Time", "Attendance Status"]
-        after9_widths = [14 * mm, 95 * mm, 45 * mm, available_width - 154 * mm]
-        after9_table_rows = []
-        for idx, r in enumerate(after_9_gps, start=1):
-            after9_table_rows.append([
-                idx, r["gp"],
-                f'<font color="#C00000"><b>{r.get("time_only")}</b></font>',
-                r.get("status") or "Present",
-            ])
-        if not after9_table_rows:
-            after9_table_rows = [["-", "No Gram Panchayats submitted attendance after 9 AM.", "-"]]
-        after9_tbl = make_table(after9_headers, after9_table_rows, after9_widths, left_columns=(1,))
+    after9_headers = ["Sl. No.", "Gram Panchayat Name", "Attendance Time", "Attendance Status"]
+    after9_widths = [14 * mm, 95 * mm, 45 * mm, available_width - 154 * mm]
+    after9_table_rows: list[list[Any]] = []
+    for idx, r in enumerate(after_9_gps, start=1):
+        after9_table_rows.append([
+            idx, r["gp"],
+            f'<font color="#C00000"><b>{r.get("time_only")}</b></font>',
+            r.get("status") or "Present",
+        ])
+    if not after9_table_rows:
+        after9_table_rows = [["-", "No Gram Panchayats submitted attendance after 9 AM.", "-", "-"]]
+    after9_tbl = make_table(after9_headers, after9_table_rows, after9_widths, left_columns=(1,))
 
     if not after_9_gps:
         after9_tbl.setStyle(TableStyle([("SPAN", (1, 1), (-1, 1)), ("ALIGN", (1, 1), (-1, 1), "LEFT")]))
