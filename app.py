@@ -1445,24 +1445,28 @@ def create_app(
         request: Request,
         report_mode: str = Form(default="district"),
         mandal_name: str = Form(default=""),
-        requested_by: str = Form(default="Naresh Portal", alias="RequestedBy"),
+        requested_by: str = Form(default="Automated Portal", alias="RequestedBy"),
     ) -> JSONResponse:
-        candidate_paths = [
-            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
-            BASE_DIR / "bundled_raw_dsr.xls",
-        ]
-        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
+        dl_dir = BASE_DIR / "automate_epts" / "downloads"
+        cand = [f for f in dl_dir.iterdir() if f.is_file() and f.suffix.lower() in (".xls", ".xlsx", ".csv")] if dl_dir.exists() else []
+        source_path = cand[0] if cand else None
         if not source_path:
-            raise HTTPException(status_code=404, detail="No automated DSR data file found.")
+            raise HTTPException(status_code=404, detail="No newly downloaded DSR data file found. Please run automated download first.")
 
         raw = source_path.read_bytes()
         filename = source_path.name
 
-        p_path = BASE_DIR / "automate_epts" / "downloads" / "presentees.xls"
-        presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
-
-        a_path = BASE_DIR / "automate_epts" / "downloads" / "absentees.xls"
-        absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
+        # Look for presentees and absentees files by keyword if available
+        presentees_data = None
+        absentees_data = None
+        if dl_dir.exists():
+            for f in dl_dir.iterdir():
+                if f.is_file() and f != source_path and f.suffix.lower() in (".xls", ".xlsx"):
+                    lname = f.name.lower()
+                    if "present" in lname or "1.2.11" in lname:
+                        presentees_data = (f.name, f.read_bytes())
+                    elif "absent" in lname or "1.2.10" in lname:
+                        absentees_data = (f.name, f.read_bytes())
 
         job_id = uuid4().hex
         record, _ = tracker.create(_new_record(job_id, filename, requested_by))
@@ -1527,25 +1531,24 @@ def create_app(
 
     @api.get("/api/naresh/data", include_in_schema=False)
     def naresh_api_data() -> dict[str, Any]:
-        candidate_paths = [
-            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
-            BASE_DIR / "bundled_raw_dsr.xls",
-        ]
-        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
-        if not source_path:
-            raise HTTPException(status_code=404, detail="Automated data file not found.")
-
+        # Return only report data from the active session if generated
         try:
-            report = process_attendance_file(source_path.name, source_path.read_bytes())
-            return {
-                "district_name": report.district_name,
-                "report_date": f"{report.report_date:%d-%b-%Y}",
-                "totals": report.totals,
-                "mandal_rows": report.mandal_rows,
-            }
-        except Exception as exc:
-            status_code, safe_message = _safe_error(exc)
-            raise HTTPException(status_code=status_code, detail=safe_message) from None
+            sys.path.insert(0, str((BASE_DIR / "automate_epts").resolve()))
+            import automation_service
+            session_data = automation_service._active_session.get("report_data")
+            if session_data:
+                return session_data
+        except Exception:
+            pass
+
+        # If no fresh report has been generated yet in this session, return empty state
+        return {
+            "district_name": "",
+            "report_date": "",
+            "totals": {},
+            "mandal_rows": [],
+            "generated": False,
+        }
 
     @api.get("/api/diag/reach", include_in_schema=False)
     def diag_reach() -> dict[str, Any]:
@@ -1618,56 +1621,49 @@ def create_app(
             raise HTTPException(status_code=status_code, detail=safe_message) from None
 
     def _serve_naresh_pdf(inline: bool = True) -> Response:
-        candidate_paths = [
-            BASE_DIR / "automate_epts" / "downloads" / "raw_dsr.xls",
-            BASE_DIR / "bundled_raw_dsr.xls",
-        ]
-        source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
-        if not source_path:
-            raise HTTPException(status_code=404, detail="Automated data file not found.")
+        # Check active session for latest generated PDF
+        try:
+            sys.path.insert(0, str((BASE_DIR / "automate_epts").resolve()))
+            import automation_service
+            pdf_path_str = automation_service._active_session.get("latest_pdf_path")
+            if pdf_path_str:
+                pdf_path = Path(pdf_path_str)
+                if pdf_path.exists() and pdf_path.stat().st_size > 500:
+                    disposition = "inline" if inline else "attachment"
+                    return Response(
+                        content=pdf_path.read_bytes(),
+                        media_type="application/pdf",
+                        headers={
+                            "Content-Disposition": f'{disposition}; filename="{pdf_path.name}"',
+                            "Access-Control-Expose-Headers": "Content-Disposition",
+                        },
+                    )
+        except Exception:
+            pass
 
-        today_str = datetime.now().strftime("%d-%m-%Y")
-        pdf_bytes = None
-        for p in [
-            BASE_DIR / "automate_epts" / "downloads" / "Official_DSR_Report_02-11-2026.pdf",
-            BASE_DIR / "data" / "reports" / f"Khammam_Official_DSR_Report_{today_str}.pdf",
-        ]:
-            if p.exists() and p.stat().st_size > 1000:
-                pdf_bytes = p.read_bytes()
-                break
-
-        if not pdf_bytes:
-            try:
-                p_path = BASE_DIR / "automate_epts" / "downloads" / "presentees.xls"
-                presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
-
-                a_path = BASE_DIR / "automate_epts" / "downloads" / "absentees.xls"
-                absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
-
-                report = process_attendance_file(
-                    source_path.name,
-                    source_path.read_bytes(),
-                    presentees_source=presentees_data,
-                    absentees_source=absentees_data,
+        # Check downloads directory for newly compiled official PDF
+        dl_dir = BASE_DIR / "automate_epts" / "downloads"
+        if dl_dir.exists():
+            pdfs = sorted(
+                [p for p in dl_dir.glob("Official_DSR_Report_*.pdf") if p.stat().st_size > 500],
+                key=lambda x: x.stat().st_mtime,
+                reverse=True,
+            )
+            if pdfs:
+                latest_pdf = pdfs[0]
+                disposition = "inline" if inline else "attachment"
+                return Response(
+                    content=latest_pdf.read_bytes(),
+                    media_type="application/pdf",
+                    headers={
+                        "Content-Disposition": f'{disposition}; filename="{latest_pdf.name}"',
+                        "Access-Control-Expose-Headers": "Content-Disposition",
+                    },
                 )
-                tmp_dir = BASE_DIR / "data" / "reports"
-                tmp_dir.mkdir(parents=True, exist_ok=True)
-                tmp_pdf = tmp_dir / f"Khammam_Official_DSR_Report_{today_str}.pdf"
-                generate_pdf(report, tmp_pdf)
-                pdf_bytes = tmp_pdf.read_bytes()
-            except Exception as exc:
-                status_code, safe_message = _safe_error(exc)
-                raise HTTPException(status_code=status_code, detail=safe_message) from None
 
-        disposition = "inline" if inline else "attachment"
-        filename = f"Khammam_Official_DSR_Report_{today_str}.pdf"
-        return Response(
-            content=pdf_bytes,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'{disposition}; filename="{filename}"',
-                "Access-Control-Expose-Headers": "Content-Disposition",
-            },
+        raise HTTPException(
+            status_code=404,
+            detail="No generated PDF available yet. Please complete login and generate report above."
         )
 
     @api.get("/api/naresh/view", include_in_schema=False)

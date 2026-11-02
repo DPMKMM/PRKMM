@@ -179,37 +179,50 @@ def verify_server_otp(otp_code: str) -> dict[str, Any]:
 
 
 def generate_server_report(module: str = "dsr_full", date_str: str = "") -> dict[str, Any]:
-    """Downloads fresh reports from portal if live session exists, or compiles from bundled source."""
+    """Downloads fresh reports from portal if live session exists and prepares report from newly downloaded files ONLY.
+    Never uses saved/bundled files. Preserves original portal filenames.
+    """
     global _active_session
 
     bot = _active_session.get("bot")
     user_id = _active_session.get("user_id") or "Officer"
     req_date = date_str.strip() if date_str else datetime.now().strftime("%Y-%m-%d")
-    today_portal_fmt = datetime.now().strftime("%d/%m/%Y")
-    if req_date:
-        try:
-            d_obj = datetime.strptime(req_date, "%Y-%m-%d")
-            today_portal_fmt = d_obj.strftime("%d/%m/%Y")
-        except Exception:
-            pass
 
-    # If live browser session exists, perform live portal download
+    from dsr_auto_download import download_single_report_with_menu, format_portal_date
+    portal_date_fmt = format_portal_date(req_date)
+
+    # Clean old downloads - strictly use newly downloaded files only
+    for old_f in DOWNLOADS_DIR.iterdir():
+        if old_f.is_file():
+            try:
+                old_f.unlink()
+            except Exception:
+                pass
+
+    downloaded_files: dict[str, Path] = {}
+
+    # If live browser session exists, perform live portal download in sequence
     if bot and bot.page and _active_session.get("status") == "authenticated":
         try:
-            from dsr_auto_download import download_single_report_with_menu
-
             # Step 1: Select GP Monitoring -> Download GM-R 1.2.7 (DSR Raw Data Report)
             logger.info("Step 1: Selecting GP Monitoring -> GM-R 1.2.7 DSR Raw Data...")
             try:
-                download_single_report_with_menu(bot, "1.2.7", "raw_dsr", today_portal_fmt)
+                p1 = download_single_report_with_menu(bot, "1.2.7", portal_date_fmt)
+                if p1 and p1.exists() and p1.stat().st_size > 0:
+                    downloaded_files["raw_dsr"] = p1
+                    logger.info("Downloaded GM-R 1.2.7 as-is: %s (%d bytes)", p1.name, p1.stat().st_size)
             except Exception as e:
                 logger.error("Download GM-R 1.2.7 error: %s", e)
+                raise RuntimeError(f"Failed to download GM-R 1.2.7 DSR Raw Data from e-Panchayat: {e}")
 
             # Step 2: Select GP Monitoring -> Download GM-R 1.2.11 (Presentees Report)
             if module in ("dsr_full", "dsr_presentees"):
                 logger.info("Step 2: Re-selecting GP Monitoring -> GM-R 1.2.11 Presentees Report...")
                 try:
-                    download_single_report_with_menu(bot, "1.2.11", "presentees", today_portal_fmt)
+                    p2 = download_single_report_with_menu(bot, "1.2.11", portal_date_fmt)
+                    if p2 and p2.exists() and p2.stat().st_size > 0:
+                        downloaded_files["presentees"] = p2
+                        logger.info("Downloaded GM-R 1.2.11 as-is: %s (%d bytes)", p2.name, p2.stat().st_size)
                 except Exception as e:
                     logger.warning("Could not download GM-R 1.2.11: %s", e)
 
@@ -217,54 +230,79 @@ def generate_server_report(module: str = "dsr_full", date_str: str = "") -> dict
             if module in ("dsr_full", "dsr_absentees"):
                 logger.info("Step 3: Re-selecting GP Monitoring -> GM-R 1.2.10 Absentees Report...")
                 try:
-                    download_single_report_with_menu(bot, "1.2.10", "absentees", today_portal_fmt)
+                    p3 = download_single_report_with_menu(bot, "1.2.10", portal_date_fmt)
+                    if p3 and p3.exists() and p3.stat().st_size > 0:
+                        downloaded_files["absentees"] = p3
+                        logger.info("Downloaded GM-R 1.2.10 as-is: %s (%d bytes)", p3.name, p3.stat().st_size)
                 except Exception as e:
                     logger.warning("Could not download GM-R 1.2.10: %s", e)
 
         except Exception as exc:
-            logger.error("Live download note: %s", exc)
+            logger.error("Live download pipeline error: %s", exc)
+            raise
 
-    # Compile report using report_generator
+    # Verify that a newly downloaded raw data file is present
+    raw_path = downloaded_files.get("raw_dsr")
+    if not raw_path or not raw_path.exists():
+        # Check if any .xls/.xlsx was saved in DOWNLOADS_DIR during this active run
+        recent_files = [f for f in DOWNLOADS_DIR.iterdir() if f.is_file() and f.suffix.lower() in (".xls", ".xlsx", ".csv")]
+        if recent_files:
+            raw_path = recent_files[0]
+        else:
+            raise RuntimeError(
+                f"No fresh DSR attendance report was downloaded from e-Panchayat portal for date '{portal_date_fmt}'. "
+                "Please ensure your e-Panchayat session is logged in and active."
+            )
+
+    # Compile report using report_generator from newly downloaded files ONLY
     from report_generator import process_attendance_file, generate_pdf
 
-    candidate_paths = [
-        DOWNLOADS_DIR / "raw_dsr.xls",
-        ROOT_DIR / "bundled_raw_dsr.xls",
-    ]
-    source_path = next((cp for cp in candidate_paths if cp.exists() and cp.stat().st_size > 0), None)
-    if not source_path:
-        raise FileNotFoundError("No DSR raw data file available to generate report.")
+    p_file = downloaded_files.get("presentees")
+    presentees_data = (p_file.name, p_file.read_bytes()) if p_file and p_file.exists() and p_file.stat().st_size > 0 else None
 
-    p_path = DOWNLOADS_DIR / "presentees.xls"
-    presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
+    a_file = downloaded_files.get("absentees")
+    absentees_data = (a_file.name, a_file.read_bytes()) if a_file and a_file.exists() and a_file.stat().st_size > 0 else None
 
-    a_path = DOWNLOADS_DIR / "absentees.xls"
-    absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
+    logger.info("Compiling report from newly downloaded file: %s (Presentees: %s, Absentees: %s)",
+                raw_path.name, bool(presentees_data), bool(absentees_data))
 
     report = process_attendance_file(
-        source_path.name,
-        source_path.read_bytes(),
+        raw_path.name,
+        raw_path.read_bytes(),
         presentees_source=presentees_data,
         absentees_source=absentees_data,
     )
 
     reports_dir = ROOT_DIR / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
-    target_pdf = reports_dir / f"Khammam_Official_DSR_Report_{req_date}.pdf"
+    target_pdf = reports_dir / f"{report.district_name.replace(' ', '_')}_Official_DSR_Report_{portal_date_fmt}.pdf"
     generate_pdf(report, target_pdf)
 
-    # Save cache
-    cached_pdf = DOWNLOADS_DIR / f"Official_DSR_Report_{req_date}.pdf"
+    # Save to downloads cache
+    cached_pdf = DOWNLOADS_DIR / f"Official_DSR_Report_{portal_date_fmt}.pdf"
     try:
         cached_pdf.write_bytes(target_pdf.read_bytes())
     except Exception:
         pass
 
+    # Save to active session state
+    _active_session["latest_pdf_path"] = str(target_pdf)
+    _active_session["latest_report_date"] = f"{report.report_date:%d-%b-%Y}"
+    _active_session["report_data"] = {
+        "district_name": report.district_name,
+        "report_date": f"{report.report_date:%d-%b-%Y}",
+        "totals": report.totals,
+        "mandal_rows": report.mandal_rows,
+        "generated": True,
+    }
+
     return {
         "success": True,
         "step": "completed",
         "user_id": user_id,
-        "message": f"Official DSR Attendance Report for {req_date} generated successfully!",
+        "district_name": report.district_name,
+        "report_date": f"{report.report_date:%d-%b-%Y}",
+        "message": f"Official DSR Attendance Report for {report.district_name} ({portal_date_fmt}) prepared successfully from newly downloaded files!",
         "pdf_url": "/api/naresh/view",
         "download_url": "/api/naresh/download",
         "totals": report.totals,

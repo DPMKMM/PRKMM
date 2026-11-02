@@ -729,9 +729,9 @@ NARESH_PAGE_HTML = """<!doctype html>
     <!-- Hero Card -->
     <section class="hero-card">
       <div class="hero-eyebrow">
-        <span>Khammam District Panchayat Office</span>
+        <span>Department of Panchayat Raj &amp; Rural Development</span>
         <span>•</span>
-        <span>Office ID: 3698</span>
+        <span>Government of Telangana</span>
       </div>
       <h1 class="hero-title">Automated DSR Report &amp; e-Panchayat Robot Station</h1>
       <p class="hero-subtitle">
@@ -743,8 +743,8 @@ NARESH_PAGE_HTML = """<!doctype html>
           <span class="live-dot"></span>
           Automated Robot Ready
         </span>
-        <span class="badge badge-portal" id="officer-badge" style="display:none;">
-          🏛️ Source: EPTS (<span id="officer-id-text"></span>)
+        <span class="badge badge-portal" id="officer-badge">
+          🏛️ Source: EPTS (<span id="officer-id-text">Department Login</span>)
         </span>
       </div>
     </section>
@@ -792,7 +792,7 @@ NARESH_PAGE_HTML = """<!doctype html>
         <div class="form-row">
           <div class="form-group">
             <label>User ID</label>
-            <input type="text" id="auto-user" placeholder="Enter User ID (e.g. DPOA3698)" autocomplete="username" oninput="updateOfficerBadge(this.value)" required>
+            <input type="text" id="auto-user" placeholder="Enter User ID" autocomplete="username" oninput="updateOfficerBadge(this.value)" required>
           </div>
           <div class="form-group">
             <label>Password</label>
@@ -910,33 +910,33 @@ NARESH_PAGE_HTML = """<!doctype html>
       <section class="metrics-grid" id="metrics-container">
         <div class="metric-card accent">
           <div class="metric-label">Total Gram Panchayats</div>
-          <div class="metric-value" id="val-total-gps">571</div>
-          <div class="metric-sub">Khammam District Total</div>
+          <div class="metric-value" id="val-total-gps">—</div>
+          <div class="metric-sub" id="sub-total-gps">District Total</div>
         </div>
         <div class="metric-card success">
           <div class="metric-label">Attendance Submitted</div>
-          <div class="metric-value" id="val-att-submitted">560</div>
-          <div class="metric-sub" id="sub-att-pct">98.1% Compliance</div>
+          <div class="metric-value" id="val-att-submitted">—</div>
+          <div class="metric-sub" id="sub-att-pct">—</div>
         </div>
         <div class="metric-card info">
           <div class="metric-label">DSR Entered</div>
-          <div class="metric-value" id="val-dsr-entered">404</div>
-          <div class="metric-sub" id="sub-dsr-pct">70.8% of Eligible (415)</div>
+          <div class="metric-value" id="val-dsr-entered">—</div>
+          <div class="metric-sub" id="sub-dsr-pct">—</div>
         </div>
         <div class="metric-card success">
           <div class="metric-label">Present Before 9 AM</div>
-          <div class="metric-value" id="val-before-9">85</div>
-          <div class="metric-sub">Timely PS Attendance</div>
+          <div class="metric-value" id="val-before-9">—</div>
+          <div class="metric-sub" id="sub-before-9">Timely PS Attendance</div>
         </div>
         <div class="metric-card warning">
           <div class="metric-label">On Leave / Training</div>
-          <div class="metric-value" id="val-on-leave">145</div>
-          <div class="metric-sub">74 Leave + 71 Training</div>
+          <div class="metric-value" id="val-on-leave">—</div>
+          <div class="metric-sub" id="sub-on-leave">Leave &amp; Meeting</div>
         </div>
         <div class="metric-card danger">
           <div class="metric-label">Attendance Pending</div>
-          <div class="metric-value" id="val-pending">11</div>
-          <div class="metric-sub">Requires Follow-up</div>
+          <div class="metric-value" id="val-pending">—</div>
+          <div class="metric-sub" id="sub-pending">Requires Follow-up</div>
         </div>
       </section>
 
@@ -993,7 +993,7 @@ NARESH_PAGE_HTML = """<!doctype html>
 
   <footer>
     Government of Telangana &bull; Panchayat Raj &amp; Rural Employment Department<br>
-    Automated DSR Monitoring Service &bull; Khammam District (Office ID: 3698)
+    Automated DSR Monitoring Service
   </footer>
 
   <script>
@@ -1039,28 +1039,28 @@ NARESH_PAGE_HTML = """<!doctype html>
     }
 
     function updateOfficerBadge(val) {
-      const clean = val.trim();
+      const clean = (val || '').trim();
       const offText = document.getElementById('officer-id-text');
       const offBadge = document.getElementById('officer-badge');
-      if (clean) {
-        if (offText) offText.innerText = clean;
-        if (offBadge) offBadge.style.display = 'inline-flex';
-      } else {
-        if (offBadge) offBadge.style.display = 'none';
-      }
+      if (offText) offText.innerText = clean ? clean : 'Department Login';
+      if (offBadge) offBadge.style.display = 'inline-flex';
     }
 
     async function safeFetchJson(url, options = {}) {
       const res = await fetch(url, options);
       const contentType = res.headers.get('content-type') || '';
       let data = null;
+      let rawText = '';
       if (contentType.includes('application/json')) {
         try {
           data = await res.json();
         } catch (e) {
           data = null;
         }
+      } else {
+        rawText = await res.text().catch(() => '');
       }
+
       if (!res.ok) {
         if (data && data.detail) {
           throw new Error(typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail));
@@ -1068,8 +1068,11 @@ NARESH_PAGE_HTML = """<!doctype html>
         if (data && data.message) {
           throw new Error(data.message);
         }
-        const text = !data ? await res.text().catch(() => '') : '';
-        throw new Error(text || `Request returned status ${res.status}`);
+        if (!rawText) rawText = await res.text().catch(() => '');
+        if (rawText.includes('<!DOCTYPE') || rawText.includes('<html')) {
+          throw new Error(`Server returned HTTP ${res.status} (${res.statusText || 'Error'}). Check server logs.`);
+        }
+        throw new Error(rawText || `Request returned status ${res.status}`);
       }
       return data || {};
     }
@@ -1255,32 +1258,41 @@ NARESH_PAGE_HTML = """<!doctype html>
     async function loadNareshData() {
       try {
         reportData = await safeFetchJson('/api/naresh/data');
-        
+        if (!reportData || !reportData.generated || !reportData.totals || Object.keys(reportData.totals).length === 0) {
+          const resultsEl = document.getElementById('results-section');
+          if (resultsEl) resultsEl.style.display = 'none';
+          return;
+        }
+
+        // Show results section
+        const resultsEl = document.getElementById('results-section');
+        if (resultsEl) resultsEl.style.display = 'block';
+
         // Update Badges & Date
         const dateEl = document.getElementById('report-date-badge');
         if (dateEl && reportData.report_date) {
           dateEl.innerText = `📅 Date: ${reportData.report_date}`;
         }
 
-        // Update Totals
+        // Update Totals with real numbers
         const t = reportData.totals || {};
-        document.getElementById('val-total-gps').innerText = t.unique_gps || 571;
-        document.getElementById('val-att-submitted').innerText = t.attendance_submitted || 560;
-        const pct = t.overall_attendance_pct ? Number(t.overall_attendance_pct).toFixed(1) : '98.1';
-        document.getElementById('sub-att-pct').innerText = `${pct}% Compliance`;
-        document.getElementById('val-dsr-entered').innerText = t.dsr_entered || 404;
-        const dsrElig = t.dsr_eligible || 415;
-        const dsrPct = dsrElig > 0 ? ((t.dsr_entered / dsrElig) * 100).toFixed(1) : '0';
-        document.getElementById('sub-dsr-pct').innerText = `${dsrPct}% of Eligible (${dsrElig})`;
-        document.getElementById('val-before-9').innerText = t.before_9 || 85;
-        const leaveTotal = (t.on_leave || 74) + (t.meeting_training || 71);
+        document.getElementById('val-total-gps').innerText = t.unique_gps != null ? t.unique_gps : '—';
+        document.getElementById('val-att-submitted').innerText = t.attendance_submitted != null ? t.attendance_submitted : '—';
+        const pct = t.overall_attendance_pct != null ? Number(t.overall_attendance_pct).toFixed(1) : '—';
+        document.getElementById('sub-att-pct').innerText = pct !== '—' ? `${pct}% Compliance` : '—';
+        document.getElementById('val-dsr-entered').innerText = t.dsr_entered != null ? t.dsr_entered : '—';
+        const dsrElig = t.dsr_eligible || 0;
+        const dsrPct = dsrElig > 0 && t.dsr_entered != null ? ((t.dsr_entered / dsrElig) * 100).toFixed(1) : '—';
+        document.getElementById('sub-dsr-pct').innerText = dsrPct !== '—' ? `${dsrPct}% of Eligible (${dsrElig})` : '—';
+        document.getElementById('val-before-9').innerText = t.before_9 != null ? t.before_9 : '—';
+        const leaveTotal = (t.on_leave || 0) + (t.meeting_training || 0);
         document.getElementById('val-on-leave').innerText = leaveTotal;
-        document.getElementById('val-pending').innerText = t.pending || 11;
+        document.getElementById('val-pending').innerText = t.pending != null ? t.pending : '—';
 
         // Render Mandals Table
         renderMandals(reportData.mandal_rows || []);
       } catch (e) {
-        console.error('Error loading Naresh automated feed:', e);
+        console.error('Error loading automated feed:', e);
       }
     }
 
