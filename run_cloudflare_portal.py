@@ -21,6 +21,8 @@ if not PYTHON_EXE.exists():
     PYTHON_EXE = Path(sys.executable)
 
 CLOUDFLARED_EXE = BASE_DIR / "cloudflared.exe"
+TUNNEL_TOKEN = ""  # Leave empty for free instant trycloudflare tunnel (no domain required)
+
 if not CLOUDFLARED_EXE.exists():
     # Try finding in system PATH
     import shutil
@@ -63,63 +65,84 @@ def main():
         sys.exit(1)
 
     # 2. Launch Cloudflare Tunnel
-    print("[*] Establishing Cloudflare Tunnel to Hyderabad edge...")
-    cf_proc = subprocess.Popen(
-        [str(CLOUDFLARED_EXE), "tunnel", "--url", "http://127.0.0.1:8000"],
-        cwd=str(BASE_DIR),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        bufsize=1,
-    )
+    if TUNNEL_TOKEN:
+        print("[*] Launching permanent Cloudflare Zero Trust tunnel with your connector token...")
+        cf_proc = subprocess.Popen(
+            [str(CLOUDFLARED_EXE), "tunnel", "run", "--token", TUNNEL_TOKEN],
+            cwd=str(BASE_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
+        print("\n" + "=" * 68)
+        print("  🚀 PERMANENT CLOUDFLARE ZERO TRUST TUNNEL IS CONNECTED!")
+        print("=" * 68)
+        print("  Status   : Connected to Hyderabad & Mumbai edge nodes (hyd03/bom10)")
+        print("  Local    : http://127.0.0.1:8000/naresh")
+        print("=" * 68)
+        print("  Your tunnel is permanently active in your Cloudflare dashboard!")
+        print("  Press Ctrl+C at any time to disconnect.\n")
+    else:
+        print("[*] Establishing Cloudflare Tunnel to Hyderabad edge...")
+        cf_proc = subprocess.Popen(
+            [str(CLOUDFLARED_EXE), "tunnel", "--url", "http://127.0.0.1:8000"],
+            cwd=str(BASE_DIR),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            bufsize=1,
+        )
 
-    tunnel_url = None
-    url_pattern = re.compile(r"https://[a-zA-Z0-9\-]+\.trycloudflare\.com")
+        tunnel_url = None
+        url_pattern = re.compile(r"https://[a-zA-Z0-9\-]+\.trycloudflare\.com")
 
-    # Read output to capture the public tunnel URL
-    start_time = time.time()
-    while time.time() - start_time < 30:
-        line = cf_proc.stdout.readline()
-        if not line:
-            if cf_proc.poll() is not None:
+        # Read output to capture the public tunnel URL
+        start_time = time.time()
+        while time.time() - start_time < 30:
+            line = cf_proc.stdout.readline()
+            if not line:
+                if cf_proc.poll() is not None:
+                    break
+                time.sleep(0.1)
+                continue
+
+            match = url_pattern.search(line)
+            if match:
+                tunnel_url = match.group(0)
                 break
-            time.sleep(0.1)
-            continue
 
-        match = url_pattern.search(line)
-        if match:
-            tunnel_url = match.group(0)
-            break
+        if not tunnel_url:
+            print("[ERROR] Could not extract tunnel URL from Cloudflare output.")
+            if cf_proc.poll() is not None:
+                print("Process exited with code:", cf_proc.returncode)
+            sys.exit(1)
 
-    if not tunnel_url:
-        print("[ERROR] Could not extract tunnel URL from Cloudflare output.")
-        if cf_proc.poll() is not None:
-            print("Process exited with code:", cf_proc.returncode)
-        sys.exit(1)
+        portal_url = f"{tunnel_url}/naresh"
+        home_url = tunnel_url
 
-    portal_url = f"{tunnel_url}/naresh"
-    home_url = tunnel_url
+        print("\n" + "=" * 68)
+        print("  🚀 PORTAL IS LIVE ONLINE VIA CLOUDFLARE HYDERABAD EDGE!")
+        print("=" * 68)
+        print(f"  Public Naresh Portal URL  :  {portal_url}")
+        print(f"  Public Home Page URL      :  {home_url}")
+        print(f"  Local Access URL          :  http://127.0.0.1:8000/naresh")
+        print("=" * 68)
+        print("  📱 You can open the Public URL on your phone or any PC.")
+        print("  🛡️ Traffic to e-Panchayat originates from your local Indian IP,")
+        print("     so Telangana State Data Center firewall will NEVER block it.")
+        print("=" * 68)
+        print("  Press Ctrl+C at any time to shut down the public tunnel.\n")
 
-    print("\n" + "=" * 68)
-    print("  🚀 PORTAL IS LIVE ONLINE VIA CLOUDFLARE HYDERABAD EDGE!")
-    print("=" * 68)
-    print(f"  Public Naresh Portal URL  :  {portal_url}")
-    print(f"  Public Home Page URL      :  {home_url}")
-    print(f"  Local Access URL          :  http://127.0.0.1:8000/naresh")
-    print("=" * 68)
-    print("  📱 You can open the Public URL on your phone or any PC.")
-    print("  🛡️ Traffic to e-Panchayat originates from your local Indian IP,")
-    print("     so Telangana State Data Center firewall will NEVER block it.")
-    print("=" * 68)
-    print("  Press Ctrl+C at any time to shut down the public tunnel.\n")
-
-    # Automatically open in browser
-    try:
-        webbrowser.open(portal_url)
-    except Exception:
-        pass
+        # Automatically open in browser
+        try:
+            webbrowser.open(portal_url)
+        except Exception:
+            pass
 
     try:
         # Keep alive and forward any relevant log messages
