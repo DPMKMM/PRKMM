@@ -196,23 +196,31 @@ def generate_server_report(module: str = "dsr_full", date_str: str = "") -> dict
     # If live browser session exists, perform live portal download
     if bot and bot.page and _active_session.get("status") == "authenticated":
         try:
-            from dsr_auto_download import get_my_iframe, download_single_report
+            from dsr_auto_download import download_single_report_with_menu
 
-            bot.select_menu("GP Monitoring")
-            time.sleep(2)
-            iframe = get_my_iframe(bot.page)
-            if iframe:
-                download_single_report(bot.page, iframe, "1.2.7", "raw_dsr", today_portal_fmt)
-                if module in ("dsr_full", "dsr_absentees"):
-                    try:
-                        download_single_report(bot.page, iframe, "1.2.10", "absentees", today_portal_fmt)
-                    except Exception as e:
-                        logger.warning("Could not download absentees: %s", e)
-                if module in ("dsr_full", "dsr_presentees"):
-                    try:
-                        download_single_report(bot.page, iframe, "1.2.11", "presentees", today_portal_fmt)
-                    except Exception as e:
-                        logger.warning("Could not download presentees: %s", e)
+            # Step 1: Select GP Monitoring -> Download GM-R 1.2.7 (DSR Raw Data Report)
+            logger.info("Step 1: Selecting GP Monitoring -> GM-R 1.2.7 DSR Raw Data...")
+            try:
+                download_single_report_with_menu(bot, "1.2.7", "raw_dsr", today_portal_fmt)
+            except Exception as e:
+                logger.error("Download GM-R 1.2.7 error: %s", e)
+
+            # Step 2: Select GP Monitoring -> Download GM-R 1.2.11 (Presentees Report)
+            if module in ("dsr_full", "dsr_presentees"):
+                logger.info("Step 2: Re-selecting GP Monitoring -> GM-R 1.2.11 Presentees Report...")
+                try:
+                    download_single_report_with_menu(bot, "1.2.11", "presentees", today_portal_fmt)
+                except Exception as e:
+                    logger.warning("Could not download GM-R 1.2.11: %s", e)
+
+            # Step 3: Select GP Monitoring -> Download GM-R 1.2.10 (Absentees Report)
+            if module in ("dsr_full", "dsr_absentees"):
+                logger.info("Step 3: Re-selecting GP Monitoring -> GM-R 1.2.10 Absentees Report...")
+                try:
+                    download_single_report_with_menu(bot, "1.2.10", "absentees", today_portal_fmt)
+                except Exception as e:
+                    logger.warning("Could not download GM-R 1.2.10: %s", e)
+
         except Exception as exc:
             logger.error("Live download note: %s", exc)
 

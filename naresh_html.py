@@ -838,16 +838,16 @@ NARESH_PAGE_HTML = """<!doctype html>
       <!-- STEP 3: Module & Date Selection -->
       <div class="step-pane" id="pane-step-3">
         <p class="step-instruction">
-          Select your target DSR Monitoring module and report date. The robot will download the reports directly from <strong>GM-R 1 Sanitation reports</strong> and generate the official PDF.
+          Automated multi-report pipeline: The robot downloads <strong>GM-R 1.2.7 DSR Raw Data</strong>, re-selects <strong>GP Monitoring</strong> to download <strong>GM-R 1.2.11 Presentees Report</strong>, re-selects <strong>GP Monitoring</strong> to download <strong>GM-R 1.2.10 Absentees Report</strong>, and compiles the official 7-section District PDF with matched secretary details (PRKMM standard).
         </p>
         <div class="form-row">
           <div class="form-group" style="flex:2;">
-            <label>DSR Report Module</label>
+            <label>Reporting Workflow</label>
             <select id="auto-module">
-              <option value="dsr_full" selected>GM-R 1.2.7 DSR Raw Data + PS Attendance (Complete Official Report)</option>
-              <option value="dsr_raw">GM-R 1.2.7 DSR Raw Data Report (730 KB)</option>
-              <option value="dsr_absentees">GM-R 1.2.10 Report on Absentees Data</option>
-              <option value="dsr_presentees">GM-R 1.2.11 Report on Presenties Data</option>
+              <option value="dsr_full" selected>GM-R 1.2.7 Raw DSR + 1.2.11 Presentees + 1.2.10 Absentees (Official 7-Section District PDF)</option>
+              <option value="dsr_raw">GM-R 1.2.7 DSR Raw Data Only</option>
+              <option value="dsr_presentees">GM-R 1.2.7 + GM-R 1.2.11 Presenties Data</option>
+              <option value="dsr_absentees">GM-R 1.2.7 + GM-R 1.2.10 Absentees Data</option>
             </select>
           </div>
           <div class="form-group" style="flex:1;">
@@ -877,10 +877,10 @@ NARESH_PAGE_HTML = """<!doctype html>
           </div>
           <ul class="progress-steps" id="progress-steps-list">
             <li class="p-step active" id="ps-1">Authenticating with e-Panchayat Session...</li>
-            <li class="p-step" id="ps-2">Opening GP Monitoring &rarr; GM-R 1 Sanitation Reports &rarr; DSR REPORTS...</li>
-            <li class="p-step" id="ps-3">Applying selected date filter...</li>
-            <li class="p-step" id="ps-4">Downloading raw data exports...</li>
-            <li class="p-step" id="ps-5">Compiling 7-section official Attendance PDF...</li>
+            <li class="p-step" id="ps-2">Step 1: GP Monitoring &rarr; Downloading GM-R 1.2.7 DSR Raw Data...</li>
+            <li class="p-step" id="ps-3">Step 2: Re-select GP Monitoring &rarr; Downloading GM-R 1.2.11 Presentees Report...</li>
+            <li class="p-step" id="ps-4">Step 3: Re-select GP Monitoring &rarr; Downloading GM-R 1.2.10 Absentees Report...</li>
+            <li class="p-step" id="ps-5">Step 4: Compiling 7-section official District Attendance &amp; DSR PDF...</li>
           </ul>
           <div id="auto-completion-banner" style="display:none; margin-top:20px; padding:18px; background:#ecfdf5; border:1.5px solid #10b981; border-radius:10px; text-align:center;">
             <strong style="color:#065f46; font-size:1.15rem; display:block; margin-bottom:6px;">🎉 Official DSR Report Generated Successfully!</strong>
@@ -1177,9 +1177,9 @@ NARESH_PAGE_HTML = """<!doctype html>
 
       // Step 1
       setSubStep(1, 'active');
-      titleEl.innerText = 'Navigating to GP Monitoring in portal iframe...';
-      barFill.style.width = '30%';
-      updateStatus('Navigating to GP Monitoring reports...');
+      titleEl.innerText = 'Step 1: GP Monitoring -> Downloading GM-R 1.2.7 DSR Raw Data...';
+      barFill.style.width = '25%';
+      updateStatus('Downloading GM-R 1.2.7 DSR Raw Data...');
 
       try {
         const formData = new FormData();
@@ -1188,31 +1188,44 @@ NARESH_PAGE_HTML = """<!doctype html>
 
         setTimeout(() => {
           setSubStep(1, 'done');
-          setSubStep(2, 'active');
-          titleEl.innerText = 'Expanding Sanitation Reports -> DSR REPORTS...';
-          barFill.style.width = '55%';
-        }, 800);
-
-        setTimeout(() => {
           setSubStep(2, 'done');
           setSubStep(3, 'active');
-          titleEl.innerText = `Setting Date filter to ${date}...`;
+          titleEl.innerText = 'Step 2: Re-select GP Monitoring -> Downloading GM-R 1.2.11 Presentees Report...';
+          barFill.style.width = '50%';
+          updateStatus('Downloading GM-R 1.2.11 Presentees Report...');
+        }, 1200);
+
+        setTimeout(() => {
+          setSubStep(3, 'done');
+          setSubStep(4, 'active');
+          titleEl.innerText = 'Step 3: Re-select GP Monitoring -> Downloading GM-R 1.2.10 Absentees Report...';
           barFill.style.width = '75%';
-        }, 1600);
+          updateStatus('Downloading GM-R 1.2.10 Absentees Report...');
+        }, 2400);
+
+        setTimeout(() => {
+          setSubStep(4, 'done');
+          setSubStep(5, 'active');
+          titleEl.innerText = 'Step 4: Compiling 7-Section Official Attendance & DSR Report (PRKMM Standard)...';
+          barFill.style.width = '90%';
+          updateStatus('Compiling official 7-section PDF report...');
+        }, 3600);
 
         const json = await safeFetchJson('/api/naresh/generate', {
           method: 'POST',
           body: formData
         });
 
+        setSubStep(1, 'done');
+        setSubStep(2, 'done');
         setSubStep(3, 'done');
         setSubStep(4, 'done');
         setSubStep(5, 'done');
         barFill.style.width = '100%';
         spinner.style.display = 'none';
-        titleEl.innerText = 'Report Generation Completed!';
+        titleEl.innerText = 'Official 7-Section District Attendance & DSR Report Generated!';
         banner.style.display = 'block';
-        updateStatus('Report generated successfully!', 'success');
+        updateStatus('Official report generated successfully!', 'success');
 
         // Reveal the results section (metrics, viewer, mandals table)
         const resultsEl = document.getElementById('results-section');

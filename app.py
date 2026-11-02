@@ -1594,7 +1594,18 @@ def create_app(
 
         if not pdf_bytes:
             try:
-                report = process_attendance_file(source_path.name, source_path.read_bytes())
+                p_path = BASE_DIR / "automate_epts" / "downloads" / "presentees.xls"
+                presentees_data = (p_path.name, p_path.read_bytes()) if p_path.exists() and p_path.stat().st_size > 0 else None
+
+                a_path = BASE_DIR / "automate_epts" / "downloads" / "absentees.xls"
+                absentees_data = (a_path.name, a_path.read_bytes()) if a_path.exists() and a_path.stat().st_size > 0 else None
+
+                report = process_attendance_file(
+                    source_path.name,
+                    source_path.read_bytes(),
+                    presentees_source=presentees_data,
+                    absentees_source=absentees_data,
+                )
                 tmp_dir = BASE_DIR / "data" / "reports"
                 tmp_dir.mkdir(parents=True, exist_ok=True)
                 tmp_pdf = tmp_dir / f"Khammam_Official_DSR_Report_{today_str}.pdf"
