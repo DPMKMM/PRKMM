@@ -516,21 +516,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         <!-- TAB 1: District Level Monitoring -->
         <div id="tab-district" class="tab-content active">
-          <!-- Automated DSR Card (Naresh) -->
-          <div class="auto-dsr-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.12);">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <span style="background: #10b981; color: white; font-size: 0.72rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">⚡ Live Feed Active</span>
-                <span style="font-size: 0.82rem; font-weight: 600; color: #047857;">e-Panchayat Telangana &bull; Khammam District</span>
-              </div>
-              <strong style="font-size: 1.05rem; color: #064e3b; display: block; margin-bottom: 4px;">Today's Automated DSR Report is Ready</strong>
-              <span style="font-size: 0.88rem; color: #065f46;">Synced directly from Department Login. Generate and view official PDF <strong>without uploading any Excel file</strong>.</span>
-            </div>
-            <button type="button" class="btn-auto-load" onclick="loadAutomatedDSRReport('district')" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); transition: transform 0.2s; white-space: nowrap;">
-              ⚡ Generate Report (No Upload Required)
-            </button>
-          </div>
-
           <div class="notice">
             <strong>District Monitoring:</strong> Automatically detects your District, all Mandals, and Gram Panchayats directly from the uploaded raw data file. When Presentees and Absentees files are provided, secretary details (Name, Mobile, Nature of Posting) are dynamically matched by LGD code.
           </div>
@@ -563,21 +548,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
 
         <!-- TAB 2: Mandal Level Monitoring -->
         <div id="tab-mandal" class="tab-content">
-          <!-- Automated Mandal Card -->
-          <div class="auto-dsr-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #10b981; border-radius: 12px; padding: 18px 22px; margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; box-shadow: 0 3px 10px rgba(16, 185, 129, 0.12);">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <span style="background: #10b981; color: white; font-size: 0.72rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">⚡ Live Feed Active</span>
-                <span style="font-size: 0.82rem; font-weight: 600; color: #047857;">e-Panchayat Telangana &bull; Khammam District</span>
-              </div>
-              <strong style="font-size: 1.05rem; color: #064e3b; display: block; margin-bottom: 4px;">Generate Mandal Report from Live Automated Feed</strong>
-              <span style="font-size: 0.88rem; color: #065f46;">Generate focused 2-page Mandal Officer report directly <strong>without uploading any Excel file</strong>.</span>
-            </div>
-            <button type="button" class="btn-auto-load" onclick="loadAutomatedDSRReport('mandal')" style="background: linear-gradient(135deg, #059669, #047857); color: white; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3); transition: transform 0.2s; white-space: nowrap;">
-              ⚡ Generate Mandal Report (No Upload)
-            </button>
-          </div>
-
           <div class="notice">
             <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
           </div>
@@ -692,13 +662,10 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       // Hash routing
       function handleHash() {
         const hash = window.location.hash.toLowerCase();
-        const isAuto = window.location.href.includes('auto=true');
         if (hash.startsWith('#reports-mandal')) {
           window.navigateTo('reports', 'mandal');
-          if (isAuto) setTimeout(() => window.loadAutomatedDSRReport('mandal'), 350);
         } else if (hash.startsWith('#reports-district') || hash.startsWith('#reports')) {
           window.navigateTo('reports', 'district');
-          if (isAuto) setTimeout(() => window.loadAutomatedDSRReport('district'), 350);
         } else if (hash === '#guidelines' || hash === '#guidelines-section') {
           window.navigateTo('home', null, 'guidelines-section');
         } else {
@@ -706,72 +673,6 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }
       }
       window.addEventListener('hashchange', handleHash);
-
-      // Automated DSR Report Loader (Naresh - No Excel Upload Required)
-      window.loadAutomatedDSRReport = async function(mode) {
-        const isMandal = mode === 'mandal';
-        const submitBtn = isMandal ? document.getElementById('mandal-generate-button') : document.getElementById('generate-button');
-        const messageEl = isMandal ? document.getElementById('mandal-report-message') : document.getElementById('report-message');
-        let mandalName = '';
-        if (isMandal) {
-          const sel = document.getElementById('mandal-select');
-          mandalName = sel ? sel.value : '';
-        }
-        
-        const fd = new FormData();
-        fd.append('report_mode', mode || 'district');
-        if (mandalName) fd.append('mandal_name', mandalName);
-        
-        if (submitBtn) submitBtn.disabled = true;
-        const modeLabel = isMandal ? 'Mandal' : 'District';
-        showToastLoading(`Loading Automated ${modeLabel} Report...`, 'Fetching live e-Panchayat data (No upload required)...');
-        showMessage(messageEl, `Processing automated ${modeLabel.toLowerCase()} report from live portal sync`, 'info');
-        
-        try {
-          const res = await fetch('/api/web/reports/auto-load', {
-            method: 'POST',
-            body: fd,
-            credentials: 'same-origin'
-          });
-          if (!res.ok) {
-            const errJson = await res.json().catch(() => ({}));
-            throw new Error(errJson.detail?.message || errJson.detail || 'Could not load automated report.');
-          }
-          const job = await res.json();
-          const jobId = job.job_id;
-          if (!jobId) throw new Error('Service did not return job ID.');
-
-          showToastLoading('Downloading PDF Report...', 'Fetching generated document...');
-          const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
-            credentials: 'same-origin'
-          });
-          if (!pdfResponse.ok) await readResponse(pdfResponse);
-          const blob = await pdfResponse.blob();
-
-          if (_activeBlobUrl) {
-            try { URL.revokeObjectURL(_activeBlobUrl); } catch (_) {}
-            _activeBlobUrl = null;
-          }
-          _activeBlobUrl = URL.createObjectURL(blob);
-
-          const fileName = job.download_filename || `${modeLabel}_Attendance_Report.pdf`;
-          const a = document.createElement('a');
-          a.href = _activeBlobUrl;
-          a.download = fileName;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-
-          const viewUrl = `/api/web/reports/${encodeURIComponent(jobId)}/view`;
-          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, viewUrl);
-          showMessage(messageEl, 'Automated report loaded & downloaded successfully! No manual upload needed.', 'success', viewUrl, fileName);
-        } catch (err) {
-          showToastError('Report Generation Failed', err.message);
-          showMessage(messageEl, err.message, 'error');
-        } finally {
-          if (submitBtn) submitBtn.disabled = false;
-        }
-      };
 
       // Tab switching inside report
       window.switchMonitoringTab = function(mode) {
