@@ -678,3 +678,42 @@ def test_web_upload_mandal_mode_downloads_mandal_pdf(tmp_path: Path, monkeypatch
     assert download_resp.status_code == 200
     assert "Mandal_A_Attendance_Report" in download_resp.headers["content-disposition"]
 
+
+def test_mandal_inherits_district_ps_directory_and_conditional_rendering(tmp_path: Path):
+    app = create_app(make_settings(tmp_path))
+    client = TestClient(app)
+    raw_bytes = bytes_for(attendance_rows(), ".xlsx")
+    pres_bytes = bytes_for(presentees_rows(), ".xlsx")
+    abs_bytes = bytes_for(absentees_rows(), ".xlsx")
+
+    # Step 1: Upload in District mode with Presentees & Absentees
+    resp_dist = client.post(
+        "/api/web/reports",
+        files={
+            "file": ("attendance.xlsx", raw_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            "presentees_file": ("presentees.xlsx", pres_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+            "absentees_file": ("absentees.xlsx", abs_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
+        data={"report_mode": "district"},
+    )
+    assert resp_dist.status_code == 200
+
+    # Step 2: Upload in Mandal mode with RAW file ONLY
+    resp_mandal = client.post(
+        "/api/web/reports",
+        files={
+            "file": ("attendance.xlsx", raw_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
+        data={"report_mode": "mandal", "mandal_name": "Mandal A"},
+    )
+    assert resp_mandal.status_code == 200
+    mandal_job_id = resp_mandal.json()["job_id"]
+
+    download_resp = client.get(f"/api/web/reports/{mandal_job_id}/download")
+    assert download_resp.status_code == 200
+    reader = PdfReader(BytesIO(download_resp.content))
+    text = "".join(p.extract_text() for p in reader.pages)
+    assert "MANDAL A" in text
+    assert "Panchayat Secretary Name" in text
+
+

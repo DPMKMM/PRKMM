@@ -37,7 +37,11 @@ from report_generator import (
     detect_file_metadata,
     generate_mandal_pdf,
     generate_pdf,
+    load_ps_directory_cache,
+    merge_ps_directories,
+    parse_ps_directory_file,
     process_attendance_file,
+    save_ps_directory_cache,
 )
 from tax_dcb_html import TAX_PAGE_HTML
 from naresh_html import NARESH_PAGE_HTML
@@ -550,6 +554,9 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         <div id="tab-mandal" class="tab-content">
           <div class="notice">
             <strong>Mandal Monitoring:</strong> Designed specifically for Mandal officers. Upload <strong>only your RAW data file</strong>. Your Mandal is detected automatically to generate the 2-page report: <strong>Page 1</strong> with Mandal Abstract Summary, Attendance Pending GPs, DSR Pending GPs, and GPs Submitted Attendance After 9 AM; <strong>Page 2</strong> with complete Gram Panchayat Attendance &amp; DSR Status (with times after 9:00 AM and pending DSR highlighted in red).
+            <div style="margin-top: 6px; font-size: 0.9em; color: #167451;">
+              💡 <strong>Automatic PS Directory Linking:</strong> Panchayat Secretary names and mobile numbers are automatically populated from the names data uploaded in the District Report module.
+            </div>
           </div>
 
           <form id="mandal-form">
@@ -1228,11 +1235,48 @@ def create_app(
 
         try:
             filename, raw_bytes = source
+            ps_cache_path = config.data_dir / "ps_directory_cache.json"
+            cached_ps_dir = load_ps_directory_cache(ps_cache_path)
+
+            # If presentees or absentees are supplied in this job (e.g. District upload),
+            # parse and merge them into the persistent PS directory cache.
+            new_sources: list[tuple[str, bytes]] = []
+            if presentees and presentees[1]:
+                new_sources.append(presentees)
+            if absentees and absentees[1]:
+                new_sources.append(absentees)
+
+            if new_sources:
+                parsed_upload_dir: dict[str, dict[str, str]] = {}
+                for src_name, src_bytes in new_sources:
+                    parsed_upload_dir = merge_ps_directories(
+                        parsed_upload_dir, parse_ps_directory_file(src_name, src_bytes)
+                    )
+                cached_ps_dir = merge_ps_directories(cached_ps_dir, parsed_upload_dir)
+                save_ps_directory_cache(cached_ps_dir, ps_cache_path)
+            elif not cached_ps_dir:
+                # Also check if automated download presentees/absentees exist
+                auto_downloads = BASE_DIR / "automate_epts" / "downloads"
+                auto_sources: list[tuple[str, bytes]] = []
+                p_auto = auto_downloads / "presentees.xls"
+                if p_auto.exists() and p_auto.stat().st_size > 0:
+                    auto_sources.append((p_auto.name, p_auto.read_bytes()))
+                a_auto = auto_downloads / "absentees.xls"
+                if a_auto.exists() and a_auto.stat().st_size > 0:
+                    auto_sources.append((a_auto.name, a_auto.read_bytes()))
+                if auto_sources:
+                    for src_name, src_bytes in auto_sources:
+                        cached_ps_dir = merge_ps_directories(
+                            cached_ps_dir, parse_ps_directory_file(src_name, src_bytes)
+                        )
+                    save_ps_directory_cache(cached_ps_dir, ps_cache_path)
+
             report = process_attendance_file(
                 filename,
                 raw_bytes,
                 presentees_source=presentees,
                 absentees_source=absentees,
+                ps_directory=cached_ps_dir,
             )
             clean_dist = re.sub(r"[^A-Za-z0-9_-]", "_", report.district_name)
             if report_mode == "mandal":
