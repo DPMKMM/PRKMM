@@ -1500,8 +1500,9 @@ def create_app(
         return response
 
     # -------------------------------------------------------------
-    # Naresh Automated DSR Portal Endpoints (/naresh)
+    # Automated DSR Portal Endpoints (/eptauto & /naresh)
     # -------------------------------------------------------------
+    @api.get("/eptauto", response_class=HTMLResponse, include_in_schema=False)
     @api.get("/naresh", response_class=HTMLResponse, include_in_schema=False)
     def naresh_page() -> HTMLResponse:
         return HTMLResponse(NARESH_PAGE_HTML)

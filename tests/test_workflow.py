@@ -401,18 +401,18 @@ def test_pdf_generation_includes_all_report_section_titles(tmp_path: Path):
     assert "No. of GPs DSR entered" in text
     assert "No. of GPs DSR pending" in normalized_text
     assert "% GPs DSR submitted" in text
-    assert "ATTENDANCE PENDING LIST" in text
-    assert "PS ON LEAVE LIST" in text
-    assert "TRAINING / MEETING LIST" in text
+    assert "Attendance Pending GPs" in text
+    assert "Secretaries Reported as Leave" in text
+    assert "Secretaries Reported as Training / Meeting" in text
     assert "AFTER 9 AM" in text
-    assert "DSR PENDING GPs LIST" in text
+    assert "DSR PENDING GPs" in text
     assert "DSR Pending GPs:" in text
     assert "Method:" not in text
     assert "GP Seven Conflict" in text or "conflicting names" in text
     page_texts = [page.extract_text() or "" for page in reader.pages]
-    assert "ATTENDANCE PENDING LIST" in page_texts[2]
-    assert "DSR PENDING GPs LIST" in page_texts[3]
-    assert "PS ON LEAVE LIST" in page_texts[4]
+    assert "Attendance Pending GPs" in page_texts[2]
+    assert "DSR PENDING GPs" in page_texts[3]
+    assert "Secretaries Reported as Leave" in page_texts[4]
 
 
 def test_mandal_abstract_repeats_column_headers_when_continued(tmp_path: Path):

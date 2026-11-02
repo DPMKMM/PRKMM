@@ -1106,9 +1106,9 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
     ])
     story.append(make_table(dsr_headers, dsr_rows, dsr_widths, left_columns=(1,), total_row=True))
 
-    # 3. ATTENDANCE PENDING LIST (with PS Name, Nature of Posting, Mobile Number)
+    # 3. Attendance Pending GPs (with PS Name, Nature of Posting, Mobile Number)
     story.append(PageBreak())
-    story.append(Paragraph("3. ATTENDANCE PENDING LIST", styles["SectionTitle"]))
+    story.append(Paragraph("3. Attendance Pending GPs", styles["SectionTitle"]))
     story.append(Paragraph(f"Total pending GPs: {len(report.pending_rows):,}", styles["ReportSubtitle"]))
     pending_headers = [
         "Sl. No.", "Mandal", "Gram Panchayat",
@@ -1137,9 +1137,9 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
         ]))
     story.append(pending_table)
 
-    # 4. DSR PENDING GPs LIST (with Attendance Time and 'DSR not entered' in RED)
+    # 4. DSR PENDING GPs (with Attendance Time and 'DSR not entered' in RED)
     story.append(PageBreak())
-    story.append(Paragraph("4. DSR PENDING GPs LIST", styles["SectionTitle"]))
+    story.append(Paragraph("4. DSR PENDING GPs", styles["SectionTitle"]))
     story.append(Paragraph(
         f"DSR Pending GPs: {len(report.dsr_pending_rows):,}",
         styles["ReportSubtitle"],
@@ -1202,9 +1202,9 @@ def generate_pdf(report: ReportData, output_path: str | Path) -> Path:
             table.setStyle(TableStyle([("SPAN", (2, 1), (-1, 1)), ("ALIGN", (2, 1), (-1, 1), "LEFT")]))
         story.append(table)
 
-    append_contact_list_section("5. PS ON LEAVE LIST", "Total PS on leave", report.leave_rows)
+    append_contact_list_section("5. Secretaries Reported as Leave", "Total Secretaries on leave", report.leave_rows)
     append_contact_list_section(
-        "6. TRAINING / MEETING LIST", "Total training/meeting records", report.meeting_training_rows,
+        "6. Secretaries Reported as Training / Meeting", "Total training/meeting records", report.meeting_training_rows,
     )
 
     # 7. GPs THAT SUBMITTED ATTENDANCE AFTER 9 AM (with PS Name, Nature of Posting, Mobile Number, Time in Red)
