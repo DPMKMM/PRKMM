@@ -1483,12 +1483,12 @@ TAX_PAGE_HTML = """<!doctype html>
       const bg = `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
       const lum = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
       const fg = lum >= 138 ? '#000000' : '#FFFFFF';
-      return { bg, fg, val: Math.round(p) };
+      return { bg, fg, val: (Number(p) || 0).toFixed(1) + "%" };
     }
 
     function renderPctCell(pctVal) {
       const hm = getPbiHeatmapStyle(pctVal);
-      return `<div class="pbi-pct-heatmap-badge" style="background:${hm.bg}; color:${hm.fg};">${hm.val}%</div>`;
+      return `<div class="pbi-pct-heatmap-badge" style="background:${hm.bg}; color:${hm.fg};">${hm.val}</div>`;
     }
 
     function switchTab(tab) {
@@ -1729,7 +1729,7 @@ TAX_PAGE_HTML = """<!doctype html>
         document.getElementById('kpi-coll-breakdown').textContent = `Arrear: ₹ ${formatInr(s.collection_arrear)} | Current: ₹ ${formatInr(s.collection_current)}`;
         document.getElementById('kpi-balance').textContent = '₹ ' + formatInr(s.total_balance);
         document.getElementById('kpi-bal-breakdown').textContent = `Arrear: ₹ ${formatInr(s.balance_arrear)} | Current: ₹ ${formatInr(s.balance_current)}`;
-        document.getElementById('kpi-pct').textContent = s.overall_percentage + ' %';
+        document.getElementById('kpi-pct').textContent = (Number(s.overall_percentage) || 0).toFixed(1) + ' %';
 
         allRecords = data.records || [];
         mandalAbstract = data.mandal_abstract || [];
@@ -1783,7 +1783,7 @@ TAX_PAGE_HTML = """<!doctype html>
               stroke-dasharray="235.62" stroke-dashoffset="${offset.toFixed(2)}"/>
         <!-- Center Percentage -->
         <text x="100" y="104" font-size="28" font-weight="900" fill="#2E0854" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle">
-          ${p.toFixed(2)}
+          ${p.toFixed(1)}%
         </text>
         <!-- Range Labels -->
         <text x="25" y="128" font-size="11" font-weight="700" fill="#1E293B" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle">
@@ -2105,7 +2105,7 @@ TAX_PAGE_HTML = """<!doctype html>
                 labels: mRanking.map(m => m.name),
                 datasets: [{
                   label: 'Collection %',
-                  data: mRanking.map(m => Math.round(m.percentage)),
+                  data: mRanking.map(m => Number((Number(m.percentage) || 0).toFixed(1))),
                   backgroundColor: '#0078D4',
                   borderRadius: 2
                 }]
@@ -2230,7 +2230,7 @@ TAX_PAGE_HTML = """<!doctype html>
                 labels: gpRanking.map(g => g.name),
                 datasets: [{
                   label: 'Collection %',
-                  data: gpRanking.map(g => Math.round(g.percentage)),
+                  data: gpRanking.map(g => Number((Number(g.percentage) || 0).toFixed(1))),
                   backgroundColor: '#0078D4',
                   borderRadius: 2
                 }]
@@ -2304,7 +2304,7 @@ TAX_PAGE_HTML = """<!doctype html>
 
       let html = '';
       abstractList.forEach((m, idx) => {
-        const mPct = Math.round(m.percentage);
+        const mPct = Number(m.percentage) || 0;
         const { bg, text } = getGradientColor(mPct);
         html += `<tr>
           <td class="center-cell">${idx + 1}</td>
@@ -2379,7 +2379,7 @@ TAX_PAGE_HTML = """<!doctype html>
 
       let html = '';
       pageRows.forEach((r, idx) => {
-        const pct = Math.round(r.calc_percentage || 0);
+        const pct = Number(r.calc_percentage || r.percentage || 0);
         const { bg, text } = getGradientColor(pct);
         html += `<tr>
           <td class="center-cell">${start + idx + 1}</td>

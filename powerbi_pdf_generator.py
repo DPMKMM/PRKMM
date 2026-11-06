@@ -98,7 +98,7 @@ def make_pbi_databar(pct: float | int, width: float = 48.0, height: float = 9.5)
     # Soft blue data bar
     d.add(Rect(0, 0.5, fill_w, height - 1.0, fillColor=colors.HexColor("#60A5FA"), strokeColor=None, rx=1, ry=1))
     # Text on top
-    text_val = f"{p:.1f}" if p < 100 else "100"
+    text_val = f"{p:.1f}%"
     d.add(String(width - 2.0, 1.8, text_val, fontName="Helvetica-Bold", fontSize=6.2, textAnchor="end", fillColor=colors.HexColor("#0F172A")))
     return d
 
@@ -123,7 +123,7 @@ def create_gauge_img(pct: float | int, title: str, title_col: str = "#DC2626", m
     # Title
     ax.text(0, 1.18, title, ha="center", va="center", fontsize=8.5, fontweight="bold", color=title_col)
     # Huge center number
-    ax.text(0, 0.22, f"{p:.2f}", ha="center", va="center", fontsize=18, fontweight="bold", color="#2E0854")
+    ax.text(0, 0.22, f"{p:.1f}%", ha="center", va="center", fontsize=18, fontweight="bold", color="#2E0854")
     # Min / Max labels
     ax.text(-0.85, -0.10, min_val, ha="center", va="center", fontsize=8, fontweight="bold", color="#1E293B")
     ax.text(0.85, -0.10, max_val, ha="center", va="center", fontsize=8, fontweight="bold", color="#1E293B")
@@ -177,7 +177,7 @@ def create_ranking_chart_img(names: list[str], pcts: list[float | int], title: s
     ax.tick_params(axis="y", labelsize=6.5)
     for bar in bars:
         y = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2.0, y + 1.2, f"{int(round(y))}", ha="center", va="bottom", fontsize=5.0 if len(names) > 25 else 5.8, fontweight="bold")
+        ax.text(bar.get_x() + bar.get_width() / 2.0, y + 1.2, f"{y:.1f}%", ha="center", va="bottom", fontsize=5.0 if len(names) > 25 else 5.8, fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.subplots_adjust(bottom=0.34)
@@ -280,7 +280,7 @@ def draw_district_page(c: canvas.Canvas, district_name: str, data: dict[str, Any
             format_inr(m.get("demand_total", 0)),
             format_inr(m.get("collection_total", 0)),
             format_inr(m.get("balance_total", 0)),
-            str(int(round(p))),
+            f"{p:.1f}%",
         ])
         style_cmds.append(("BACKGROUND", (5, idx), (5, idx), colors.HexColor(bg_hex)))
         style_cmds.append(("TEXTCOLOR", (5, idx), (5, idx), colors.HexColor(fg_hex)))
@@ -295,7 +295,7 @@ def draw_district_page(c: canvas.Canvas, district_name: str, data: dict[str, Any
         format_inr(s.get("total_demand", 0)),
         format_inr(s.get("total_collection", 0)),
         format_inr(s.get("total_balance", 0)),
-        str(int(round(tot_pct))),
+        f"{tot_pct:.1f}%",
     ])
     style_cmds.append(("BACKGROUND", (5, tot_row_idx), (5, tot_row_idx), colors.HexColor(tot_bg)))
     style_cmds.append(("TEXTCOLOR", (5, tot_row_idx), (5, tot_row_idx), colors.HexColor(tot_fg)))
@@ -408,7 +408,7 @@ def draw_mandal_page(c: canvas.Canvas, mandal_name: str, m_data: dict[str, Any])
             format_inr(r.get("demand_total", 0)),
             format_inr(r.get("collection_total", 0)),
             format_inr(r.get("balance_total", 0)),
-            str(int(round(p))),
+            f"{p:.1f}%",
         ])
         style_cmds.append(("BACKGROUND", (4, idx), (4, idx), colors.HexColor(bg_hex)))
         style_cmds.append(("TEXTCOLOR", (4, idx), (4, idx), colors.HexColor(fg_hex)))
@@ -422,7 +422,7 @@ def draw_mandal_page(c: canvas.Canvas, mandal_name: str, m_data: dict[str, Any])
         format_inr(s.get("total_demand", 0)),
         format_inr(s.get("total_collection", 0)),
         format_inr(s.get("total_balance", 0)),
-        str(int(round(m_pct))),
+        f"{m_pct:.1f}%",
     ])
     style_cmds.append(("BACKGROUND", (4, tot_row_idx), (4, tot_row_idx), colors.HexColor(m_tot_bg)))
     style_cmds.append(("TEXTCOLOR", (4, tot_row_idx), (4, tot_row_idx), colors.HexColor(m_tot_fg)))
@@ -531,7 +531,7 @@ def get_or_generate_powerbi_pdf(
     reports_dir = base_dir / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     pdf_filename = f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}.pdf"
-    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}_v6.pdf"
+    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}_v7.pdf"
 
     if not force_regenerate and cache_path.exists() and cache_path.stat().st_size > 10_000:
         return pdf_filename, cache_path.read_bytes()

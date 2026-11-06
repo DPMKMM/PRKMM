@@ -79,7 +79,7 @@ def make_pct_flowable(pct: float | int, h_row: float, font_size: float = 7.0) ->
     Displays the bold percentage text with a proportional progress line bar underneath.
     """
     try:
-        p = max(0, min(100, int(round(float(pct)))))
+        p = max(0.0, min(100.0, float(pct)))
     except (ValueError, TypeError):
         p = 0
     bg_hex, _ = get_gradient_color(p)
@@ -92,7 +92,7 @@ def make_pct_flowable(pct: float | int, h_row: float, font_size: float = 7.0) ->
     bar_h = 3.2
 
     # Percentage number
-    d.add(String(w_draw / 2.0, text_y, f"{p}%", fontName="Helvetica-Bold", fontSize=font_size, textAnchor="middle", fillColor=colors.HexColor("#111827")))
+    d.add(String(w_draw / 2.0, text_y, f"{p:.1f}%", fontName="Helvetica-Bold", fontSize=font_size, textAnchor="middle", fillColor=colors.HexColor("#111827")))
     # Track line
     d.add(Rect(0, bar_y, w_draw, bar_h, fillColor=colors.HexColor("#E2E8F0"), strokeColor=None, rx=1.5, ry=1.5))
     # Filled progress bar line
@@ -385,7 +385,7 @@ def generate_dcb_pdf(
             m_b_cur = int(m_sub["balance_current"].sum())
             m_b_tot = int(m_sub["balance_total"].sum())
             m_pct_float = (m_c_tot / m_d_tot * 100.0) if m_d_tot > 0 else 0.0
-            m_pct = int(round(m_pct_float))
+            m_pct = round(m_pct_float, 1)
             abs_mandals.append({
                 "name": m_name,
                 "gps": m_gps,
@@ -430,7 +430,7 @@ def generate_dcb_pdf(
             dist_b_tot += m_b_tot
             dist_gps_tot += m_gps
 
-            m_bg_hex, m_fg_hex = get_gradient_color(m_pct)
+            m_bg_hex, m_fg_hex = get_gradient_color(m_pct_float)
             m_pct_style = ParagraphStyle(
                 f"AbsPct_{idx}",
                 parent=styles["Normal"],
@@ -457,7 +457,7 @@ def generate_dcb_pdf(
                 Paragraph(format_indian_currency(m_b_arr), cell_body_right),
                 Paragraph(format_indian_currency(m_b_cur), cell_body_right),
                 Paragraph(format_indian_currency(m_b_tot), cell_body_right),
-                Paragraph(str(m_pct), m_pct_style),
+                Paragraph(f"{m_pct_float:.1f}%", m_pct_style),
             ]
             abs_table_data.append(abs_row)
             abs_row_heights.append(h_abs_row)
@@ -465,8 +465,8 @@ def generate_dcb_pdf(
             abs_table_styles.append(("BACKGROUND", (-1, r_idx), (-1, r_idx), colors.HexColor(m_bg_hex)))
 
         # District Total Row
-        dist_pct = int(round(dist_c_tot / dist_d_tot * 100)) if dist_d_tot > 0 else 0
-        d_bg_hex, d_fg_hex = get_gradient_color(dist_pct)
+        dist_pct_float = (dist_c_tot / dist_d_tot * 100.0) if dist_d_tot > 0 else 0.0
+        d_bg_hex, d_fg_hex = get_gradient_color(dist_pct_float)
         d_pct_style = ParagraphStyle(
             "DistTotPct",
             parent=styles["Normal"],
@@ -491,7 +491,7 @@ def generate_dcb_pdf(
             Paragraph(format_indian_currency(dist_b_arr), cell_total_num),
             Paragraph(format_indian_currency(dist_b_cur), cell_total_num),
             Paragraph(format_indian_currency(dist_b_tot), cell_total_num),
-            Paragraph(str(dist_pct), d_pct_style),
+            Paragraph(f"{dist_pct_float:.1f}%", d_pct_style),
         ]
         abs_table_data.append(dist_tot_row)
         abs_row_heights.append(h_abs_row + 2.0)
@@ -524,9 +524,8 @@ def generate_dcb_pdf(
         tot_b_arr = m_df["balance_arrear"].sum()
         tot_b_cur = m_df["balance_current"].sum()
         tot_b_tot = m_df["balance_total"].sum()
-        tot_pct = int(round(tot_c_tot / tot_d_tot * 100)) if tot_d_tot > 0 else 0
-
-        tot_bg_hex, tot_fg_hex = get_gradient_color(tot_pct)
+        tot_pct_float = (tot_c_tot / tot_d_tot * 100.0) if tot_d_tot > 0 else 0.0
+        tot_bg_hex, tot_fg_hex = get_gradient_color(tot_pct_float)
         tot_pct_style = ParagraphStyle(
             f"TotPct_{m_idx}",
             parent=styles["Normal"],
@@ -550,7 +549,7 @@ def generate_dcb_pdf(
             Paragraph(format_indian_currency(tot_b_arr), cell_total_num),
             Paragraph(format_indian_currency(tot_b_cur), cell_total_num),
             Paragraph(format_indian_currency(tot_b_tot), cell_total_num),
-            Paragraph(str(tot_pct), tot_pct_style),
+            Paragraph(f"{tot_pct_float:.1f}%", tot_pct_style),
         ]
 
         # Chunk the mandal rows into pages using best fit
@@ -609,7 +608,7 @@ def generate_dcb_pdf(
 
             for idx, r in enumerate(chunk):
                 s_no = cursor + idx + 1
-                pct_val = int(round(r.get("calc_percentage", 0)))
+                pct_val = float(r.get("calc_percentage", 0.0))
                 row_bg_hex, row_fg_hex = get_gradient_color(pct_val)
                 row_pct_style = ParagraphStyle(
                     f"RowPct_{s_no}_{cursor}_{idx}",
@@ -635,7 +634,7 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(r.get("balance_arrear", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_current", 0)), cur_cell_right),
                     Paragraph(format_indian_currency(r.get("balance_total", 0)), cur_cell_right),
-                    Paragraph(str(pct_val), row_pct_style),
+                    Paragraph(f"{pct_val:.1f}%", row_pct_style),
                 ]
                 table_data.append(row)
                 row_heights.append(h_row)
@@ -656,7 +655,7 @@ def generate_dcb_pdf(
                     Paragraph(format_indian_currency(tot_b_arr), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_cur), tot_cell_num),
                     Paragraph(format_indian_currency(tot_b_tot), tot_cell_num),
-                    Paragraph(str(tot_pct), tot_pct_style),
+                    Paragraph(f"{tot_pct_float:.1f}%", tot_pct_style),
                 ]
                 table_data.append(cur_total_row)
                 row_heights.append(h_row)

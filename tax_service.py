@@ -241,7 +241,7 @@ def get_filtered_data(district_name: Optional[str] = None, mandal_name: Optional
     tot_records = int(filtered["assessments"].sum())
     tot_gps = len(filtered)
     tot_mandals = int(filtered["mandal"].nunique())
-    overall_pct = round((tot_coll / tot_demand * 100), 2) if tot_demand > 0 else 0.0
+    overall_pct = round((tot_coll / tot_demand * 100), 1) if tot_demand > 0 else 0.0
 
     # Mandal-wise grouped abstract
     mandal_groups = filtered.groupby(["district", "mandal"]).agg(
