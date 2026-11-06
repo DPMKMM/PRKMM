@@ -4,12 +4,22 @@ from __future__ import annotations
 
 import io
 import logging
+import os
+import sys
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 import httpx
 import pandas as pd
 
 logger = logging.getLogger("epmis_tax_service")
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+RAW_TAX_FILE = DATA_DIR / "allgpdata_raw.xls"
+SEED_TAX_FILE = DATA_DIR / "bundled_dcb_seed.csv.gz"
 
 URL_ALL_GP_DATA = "https://epanchayat.telangana.gov.in/epmis/allgpdata.jsp"
 URL_DISTRICT_LIVE = "https://epanchayat.telangana.gov.in/epmis/epmisPRHTAXDCBLive.jsp"
@@ -19,16 +29,31 @@ _LAST_FETCH_TIME: float = 0.0
 
 
 def download_portal_raw_data() -> bytes:
-    """Download fresh raw Excel data directly from Telangana epanchayat portal."""
+    """Download fresh raw Excel data directly from Telangana epanchayat portal or configured proxy."""
     global _LIVE_BYTES_CACHE, _LAST_FETCH_TIME
-    logger.info("Connecting to Telangana portal to fetch fresh live DCB data: %s", URL_ALL_GP_DATA)
-    with httpx.Client(verify=False, timeout=60.0) as client:
-        resp = client.get(URL_ALL_GP_DATA, headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-        })
+
+    proxy_base = (os.getenv("DCB_PORTAL_PROXY_URL") or "").strip().rstrip("/")
+    proxy_token = (os.getenv("DCB_PORTAL_PROXY_TOKEN") or "").strip()
+    if proxy_base:
+        if not proxy_token:
+            raise RuntimeError("DCB_PORTAL_PROXY_TOKEN is required when the live DCB proxy is configured.")
+        request_url = f"{proxy_base}/v1/dcb/raw"
+        logger.info("Fetching live DCB workbook through the configured e-Panchayat proxy: %s", request_url)
+    else:
+        request_url = URL_ALL_GP_DATA
+        logger.info("Connecting directly to Telangana e-Panchayat for live DCB data: %s", URL_ALL_GP_DATA)
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/vnd.ms-excel,application/octet-stream,*/*",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    }
+    if proxy_base:
+        headers["Authorization"] = f"Bearer {proxy_token}"
+
+    with httpx.Client(verify=False, timeout=30.0) as client:
+        resp = client.get(request_url, headers=headers)
         resp.raise_for_status()
         content = resp.content
         if len(content) < 50_000:
@@ -36,34 +61,41 @@ def download_portal_raw_data() -> bytes:
 
         _LIVE_BYTES_CACHE = content
         _LAST_FETCH_TIME = time.time()
+        try:
+            RAW_TAX_FILE.write_bytes(content)
+        except Exception:
+            pass
         logger.info("Successfully fetched live portal DCB data: %d bytes", len(content))
         return content
 
 
 def get_raw_data_bytes(force_download: bool = False) -> bytes:
-    """Always fetch live real-time data from portal. Short 2-minute memory cache prevents duplicate downloads during rapid page navigation."""
+    """Always fetch live real-time data from portal with disk and memory cache fallback."""
     global _LIVE_BYTES_CACHE, _LAST_FETCH_TIME
 
-    # If force_download is requested, or cache is older than 2 minutes, fetch live from portal
-    if not force_download and _LIVE_BYTES_CACHE and (time.time() - _LAST_FETCH_TIME < 120):
+    # If force_download is not requested, and cache is fresh, return memory cache
+    if not force_download and _LIVE_BYTES_CACHE and (time.time() - _LAST_FETCH_TIME < 300):
         return _LIVE_BYTES_CACHE
 
     try:
         return download_portal_raw_data()
     except Exception as exc:
-        logger.error("Live portal download attempt failed: %s", exc)
-        raise RuntimeError(f"Could not fetch live data from Telangana e-Panchayat portal: {exc}") from exc
+        logger.warning("Live portal download attempt encountered error: %s", exc)
+        if _LIVE_BYTES_CACHE:
+            logger.info("Falling back to active in-memory cached raw bytes (%d bytes)", len(_LIVE_BYTES_CACHE))
+            return _LIVE_BYTES_CACHE
+        if RAW_TAX_FILE.exists() and RAW_TAX_FILE.stat().st_size > 100_000:
+            logger.warning("Using last live fetched file from disk (%d bytes)", RAW_TAX_FILE.stat().st_size)
+            return RAW_TAX_FILE.read_bytes()
+        for candidate in [BASE_DIR / "bundled_allgpdata.xls", BASE_DIR / "allgpdata.xls"]:
+            if candidate.exists() and candidate.stat().st_size > 100_000:
+                logger.warning("Using bundled data fallback: %s", candidate.name)
+                return candidate.read_bytes()
+        raise RuntimeError(f"Could not connect to Telangana e-Panchayat portal: {exc}") from exc
 
 
-def parse_and_clean_data(raw_bytes: Optional[bytes] = None) -> pd.DataFrame:
-    """Parse raw bytes into a clean, strongly-typed pandas DataFrame."""
-    if raw_bytes is None:
-        raw_bytes = get_raw_data_bytes()
-
-    # Raw file has a title row on line 0, actual headers on line 1
-    df = pd.read_excel(io.BytesIO(raw_bytes), skiprows=1)
-
-    # Standardize column names
+def _sanitize_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardize column names, trim strings, and cast numeric fields."""
     col_map = {
         "SNO": "sno",
         "DIST_NAME": "district",
@@ -113,14 +145,54 @@ def parse_and_clean_data(raw_bytes: Optional[bytes] = None) -> pd.DataFrame:
     return df
 
 
+def parse_and_clean_data(raw_bytes: Optional[bytes] = None) -> pd.DataFrame:
+    """Parse raw bytes into a clean, strongly-typed pandas DataFrame."""
+    if raw_bytes is None:
+        raw_bytes = get_raw_data_bytes()
+
+    # Raw file has a title row on line 0, actual headers on line 1
+    df = pd.read_excel(io.BytesIO(raw_bytes), skiprows=1)
+    return _sanitize_df(df)
+
+
 _DF_CACHE: Optional[pd.DataFrame] = None
 
 
 def get_df(force_reload: bool = False) -> pd.DataFrame:
-    global _DF_CACHE
-    if _DF_CACHE is None or force_reload or (_LAST_FETCH_TIME and (time.time() - _LAST_FETCH_TIME > 120)):
+    global _DF_CACHE, _LAST_FETCH_TIME
+
+    if _DF_CACHE is not None and not force_reload and (time.time() - _LAST_FETCH_TIME < 300):
+        return _DF_CACHE
+
+    # Instant bootstrap: if no cache is loaded and not forcing reload, prime from seed file (<0.1s)
+    if _DF_CACHE is None and not force_reload and SEED_TAX_FILE.exists() and SEED_TAX_FILE.stat().st_size > 10_000:
+        try:
+            logger.info("Fast bootstrap: loading seed DCB dataset from %s", SEED_TAX_FILE.name)
+            seed_df = pd.read_csv(SEED_TAX_FILE)
+            _DF_CACHE = _sanitize_df(seed_df)
+            _LAST_FETCH_TIME = time.time() - 240
+            return _DF_CACHE
+        except Exception as seed_err:
+            logger.warning("Could not read seed file: %s", seed_err)
+
+    try:
         raw = get_raw_data_bytes(force_download=force_reload)
         _DF_CACHE = parse_and_clean_data(raw)
+        try:
+            _DF_CACHE.to_csv(SEED_TAX_FILE, index=False, compression="gzip")
+        except Exception:
+            pass
+    except Exception as exc:
+        logger.warning("Could not refresh live data from portal: %s", exc)
+        if _DF_CACHE is not None:
+            return _DF_CACHE
+        if SEED_TAX_FILE.exists() and SEED_TAX_FILE.stat().st_size > 10_000:
+            logger.info("Loading fallback seed dataset from %s", SEED_TAX_FILE.name)
+            seed_df = pd.read_csv(SEED_TAX_FILE)
+            _DF_CACHE = _sanitize_df(seed_df)
+            return _DF_CACHE
+        raise RuntimeError(f"Could not fetch live data from Telangana e-Panchayat portal: {exc}") from exc
+
     return _DF_CACHE
 
 

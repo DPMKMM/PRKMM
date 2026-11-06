@@ -1525,28 +1525,65 @@ TAX_PAGE_HTML = """<!doctype html>
       frame.src = `/api/tax/report.pdf?district=${encDist}${mandalParam}&t=${Date.now()}`;
     }
 
-    // Load available districts from API (no auto-selection)
+    // Known Telangana rural districts for immediate fallback rendering
+    const DEFAULT_TELANGANA_DISTRICTS = [
+      'Adilabad', 'Bhadradri Kothagudem', 'Hanumakonda', 'Jagtial', 'Jangaon',
+      'Jayashankar Bhupalpalli', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam',
+      'Komarambheem Asifabad', 'Mahabubabad', 'Mahabubnagar', 'Mancherial', 'Medak',
+      'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad',
+      'Peddapalli', 'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet',
+      'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal', 'Yadadri Bhuvanagiri'
+    ];
+
+    // Load available districts from API with robust fallback & auto-selection from URL
     async function initDistricts() {
+      const sel = document.getElementById('district-select');
+      if (!sel) return;
+      sel.innerHTML = '<option value="" selected disabled>⏳ Loading districts from portal...</option>';
+
+      // Check if URL specifies a district
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlDist = (urlParams.get('district') || '').trim();
+
       try {
         const res = await fetch('/api/tax/districts');
-        const districts = await res.json();
-        const sel = document.getElementById('district-select');
+        if (res.ok) {
+          const districts = await res.json();
+          if (Array.isArray(districts) && districts.length > 0) {
+            sel.innerHTML = '<option value="" selected disabled>-- Select District --</option>';
+            districts.forEach(d => {
+              const opt = document.createElement('option');
+              const dName = typeof d === 'string' ? d : (d.district || d.name || '');
+              const countStr = d.gps_count ? ` (${d.gps_count} GPs)` : '';
+              opt.value = dName;
+              opt.textContent = `${dName}${countStr}`;
+              sel.appendChild(opt);
+            });
+            if (urlDist) {
+              sel.value = urlDist;
+              onDistrictChange();
+            } else {
+              showStatus('Please select a District and click Generate Report to begin.', 'info');
+            }
+            return;
+          }
+        }
+        throw new Error('Districts API returned invalid response');
+      } catch (err) {
+        console.warn('Could not load dynamic district count, using statewide list:', err);
         sel.innerHTML = '<option value="" selected disabled>-- Select District --</option>';
-
-        districts.forEach(d => {
+        DEFAULT_TELANGANA_DISTRICTS.forEach(dName => {
           const opt = document.createElement('option');
-          opt.value = d.district;
-          opt.textContent = `${d.district} (${d.gps_count} GPs)`;
+          opt.value = dName;
+          opt.textContent = dName;
           sel.appendChild(opt);
         });
-
-        const mandalSel = document.getElementById('mandal-select');
-        mandalSel.innerHTML = '<option value="all">-- Select District First --</option>';
-        mandalSel.disabled = true;
-
-        showStatus('Please select a District and click Generate Report to begin.', 'info');
-      } catch (err) {
-        showStatus('Error loading districts: ' + err.message, 'error');
+        if (urlDist) {
+          sel.value = urlDist;
+          onDistrictChange();
+        } else {
+          showStatus('Districts loaded. Please select a District and click Generate Report.', 'info');
+        }
       }
     }
 
@@ -1655,15 +1692,19 @@ TAX_PAGE_HTML = """<!doctype html>
     async function loadMandals(dist) {
       try {
         const res = await fetch(`/api/tax/mandals?district=${encodeURIComponent(dist)}`);
-        const mandals = await res.json();
         const sel = document.getElementById('mandal-select');
         sel.innerHTML = '<option value="all">-- All Mandals (Consolidated) --</option>';
-        mandals.forEach(m => {
-          const opt = document.createElement('option');
-          opt.value = m;
-          opt.textContent = m;
-          sel.appendChild(opt);
-        });
+        if (res.ok) {
+          const mandals = await res.json();
+          if (Array.isArray(mandals)) {
+            mandals.forEach(m => {
+              const opt = document.createElement('option');
+              opt.value = m;
+              opt.textContent = m;
+              sel.appendChild(opt);
+            });
+          }
+        }
       } catch (err) {
         console.error('Error loading mandals', err);
       }
