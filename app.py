@@ -596,6 +596,9 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         <button type="button" id="download-toast-close-btn" class="download-toast-close" onclick="window.dismissDownloadToast &amp;&amp; window.dismissDownloadToast()" aria-label="Close notification">&times;</button>
       </div>
       <div id="download-toast-actions" class="download-toast-actions" style="display:none;">
+        <button type="button" id="download-toast-pdf-btn" class="download-toast-btn-open" style="background:#1d4ed8; display:none;">
+          <span>📥</span> Download PDF
+        </button>
         <a id="download-toast-open-btn" class="download-toast-btn-open" href="#" target="_blank" rel="noopener noreferrer">
           <span>📄</span> Open / View PDF
         </a>
@@ -752,13 +755,14 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         progressBar.className = 'download-toast-progress loading';
       }
 
-      function showToastSuccess(title, subtitle, filename, viewUrl) {
+      function showToastSuccess(title, subtitle, filename, viewUrl, onDownloadPdf = null) {
         const container = document.getElementById('download-toast-container');
         const iconWrap = document.getElementById('download-toast-icon');
         const titleEl = document.getElementById('download-toast-title');
         const subtitleEl = document.getElementById('download-toast-subtitle');
         const actionsEl = document.getElementById('download-toast-actions');
         const openBtn = document.getElementById('download-toast-open-btn');
+        const pdfBtn = document.getElementById('download-toast-pdf-btn');
         const progressBar = document.getElementById('download-toast-progress-bar');
         if (!container) return;
 
@@ -768,6 +772,15 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         subtitleEl.textContent = subtitle || `${filename} saved to Downloads.`;
         progressBar.style.display = 'none';
         actionsEl.style.display = 'flex';
+
+        if (pdfBtn) {
+          if (onDownloadPdf) {
+            pdfBtn.style.display = 'inline-flex';
+            pdfBtn.onclick = onDownloadPdf;
+          } else {
+            pdfBtn.style.display = 'none';
+          }
+        }
 
         if (viewUrl) {
           openBtn.style.display = 'inline-flex';
@@ -788,7 +801,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         if (_toastTimer) clearTimeout(_toastTimer);
         _toastTimer = setTimeout(() => {
           window.dismissDownloadToast();
-        }, 14000);
+        }, 16000);
       }
 
       function showToastError(title, subtitle) {
@@ -798,6 +811,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         const subtitleEl = document.getElementById('download-toast-subtitle');
         const actionsEl = document.getElementById('download-toast-actions');
         const openBtn = document.getElementById('download-toast-open-btn');
+        const pdfBtn = document.getElementById('download-toast-pdf-btn');
         const progressBar = document.getElementById('download-toast-progress-bar');
         if (!container) return;
 
@@ -808,6 +822,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         progressBar.style.display = 'none';
         actionsEl.style.display = 'flex';
         openBtn.style.display = 'none';
+        if (pdfBtn) pdfBtn.style.display = 'none';
 
         if (_toastTimer) clearTimeout(_toastTimer);
         _toastTimer = setTimeout(() => {
@@ -815,24 +830,20 @@ UPLOAD_PAGE_HTML = """<!doctype html>
         }, 8000);
       }
 
-      function showMessage(element, message, status = 'info', viewUrl = null, filename = '') {
+      function showMessage(element, messageHtml, status = 'info', extraActionsHtml = '') {
         if (!element) return;
         if (status === true) status = 'success';
         if (status === false) status = 'error';
 
         element.className = `message active ${status}`;
         if (status === 'success') {
-          let openBtnHtml = viewUrl ? `<a href="${viewUrl}" target="_blank" rel="noopener noreferrer" class="message-btn-open"><span>📄</span> Open PDF</a>` : '';
           element.innerHTML = `
             <div class="message-content">
               <div class="message-text">
-                <span style="font-size:1.25rem; line-height:1;">✅</span>
-                <div>
-                  <div style="font-weight:700; color:#14532d;">${message}</div>
-                  ${filename ? `<div style="font-size:0.82rem; font-weight:500; color:#166534; margin-top:2px;">📁 ${filename}</div>` : ''}
-                </div>
+                <span style="font-size:1.35rem; line-height:1;">✅</span>
+                <div style="flex:1;">${messageHtml}</div>
               </div>
-              ${openBtnHtml}
+              ${extraActionsHtml ? `<div class="message-actions-wrap" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">${extraActionsHtml}</div>` : ''}
             </div>
           `;
         } else if (status === 'error') {
@@ -840,7 +851,7 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <div class="message-content">
               <div class="message-text">
                 <span style="font-size:1.25rem; line-height:1;">⚠️</span>
-                <div style="font-weight:600; color:#991b1b;">${message}</div>
+                <div style="font-weight:600; color:#991b1b;">${messageHtml}</div>
               </div>
             </div>
           `;
@@ -849,12 +860,37 @@ UPLOAD_PAGE_HTML = """<!doctype html>
             <div class="message-content">
               <div class="message-text">
                 <span style="font-size:1.25rem; line-height:1;">⏳</span>
-                <div style="font-weight:600; color:#0369a1;">${message}</div>
+                <div style="font-weight:600; color:#0369a1;">${messageHtml}</div>
               </div>
             </div>
           `;
         }
       }
+
+      window.downloadReportPdf = async function(jobId, fallbackPdfName) {
+        showToastLoading('Downloading PDF Report...', 'Fetching generated PDF document…');
+        try {
+          const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
+            credentials: 'same-origin'
+          });
+          if (!pdfResponse.ok) await readResponse(pdfResponse);
+          const blob = await pdfResponse.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          const disposition = pdfResponse.headers.get('Content-Disposition') || '';
+          const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || fallbackPdfName || 'Attendance_Report.pdf';
+
+          const link = document.createElement('a');
+          link.href = objectUrl;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          showToastSuccess('PDF Download Complete!', `${fileName} saved to Downloads.`, fileName, `/api/web/reports/${encodeURIComponent(jobId)}/view`);
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+        } catch (err) {
+          showToastError('PDF Download Failed', err.message || 'Could not download PDF.');
+        }
+      };
 
       async function readResponse(response) {
         const body = await response.json().catch(() => ({}));
@@ -906,7 +942,8 @@ UPLOAD_PAGE_HTML = """<!doctype html>
       // Generic job runner
       async function runReportJob(formData, submitBtn, messageEl, fallbackFilename) {
         submitBtn.disabled = true;
-        const modeLabel = formData.get('report_mode') === 'mandal' ? 'Mandal' : 'District';
+        const isMandal = formData.get('report_mode') === 'mandal';
+        const modeLabel = isMandal ? 'Mandal' : 'District';
         showToastLoading(`Generating ${modeLabel} DSR Report...`, 'Uploading attendance data to analytics engine...');
         showMessage(messageEl, `Uploading and processing ${modeLabel.toLowerCase()} attendance data…`, 'info');
         try {
@@ -924,43 +961,108 @@ UPLOAD_PAGE_HTML = """<!doctype html>
           }
           if (job.status !== 'Completed') throw new Error(job.notes || 'The report job did not complete.');
 
-          showToastLoading('Downloading PDF Report...', 'Fetching generated document...');
-          showMessage(messageEl, 'Report ready! Fetching and downloading PDF…', 'info');
+          const pdfViewUrl = `/api/web/reports/${encodeURIComponent(jobId)}/view`;
+          const pdfFallbackName = job.download_filename || fallbackFilename;
 
-          const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
-            credentials: 'same-origin'
-          });
-          if (!pdfResponse.ok) await readResponse(pdfResponse);
-          const blob = await pdfResponse.blob();
+          if (isMandal) {
+            // Mandal mode: Automatically download Page 2 (GP ATTENDANCE & DSR REPORT) in JPEG format
+            showToastLoading('Downloading JPEG Report...', 'Fetching Page 2 (GP Attendance & DSR Report) image…');
+            showMessage(messageEl, 'Report ready! Fetching Page 2 GP Attendance & DSR Report in JPEG format…', 'info');
 
-          if (_activeBlobUrl) {
-            try { URL.revokeObjectURL(_activeBlobUrl); } catch(e){}
-          }
-          const objectUrl = URL.createObjectURL(blob);
-          _activeBlobUrl = objectUrl;
+            const imgResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download-image?page=2`, {
+              credentials: 'same-origin'
+            });
+            if (!imgResponse.ok) await readResponse(imgResponse);
+            const imgBlob = await imgResponse.blob();
+            const imgObjectUrl = URL.createObjectURL(imgBlob);
 
-          const disposition = pdfResponse.headers.get('Content-Disposition') || '';
-          const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || fallbackFilename;
+            const imgDisposition = imgResponse.headers.get('Content-Disposition') || '';
+            const imgFileName = /filename="?([^";]+)"?/i.exec(imgDisposition)?.[1] || `${pdfFallbackName.replace(/\.pdf$/i, '')}_GP_Attendance_DSR.jpg`;
 
-          const link = document.createElement('a');
-          link.href = objectUrl;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
+            const link = document.createElement('a');
+            link.href = imgObjectUrl;
+            link.download = imgFileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(imgObjectUrl), 60000);
 
-          // Show floating toast and banner notification with direct view URL
-          const viewUrl = `/api/web/reports/${encodeURIComponent(jobId)}/view`;
-          showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, viewUrl);
-          showMessage(messageEl, 'Report downloaded successfully! You can upload another file or view the PDF.', 'success', viewUrl, fileName);
+            // Show success message with prominent Download PDF button
+            const actionButtonsHtml = `
+              <button type="button" onclick="window.downloadReportPdf('${encodeURIComponent(jobId)}', '${pdfFallbackName}')" class="message-btn-open" style="background:#1d4ed8;">
+                <span>📥</span> Download PDF
+              </button>
+              <a href="${pdfViewUrl}" target="_blank" rel="noopener noreferrer" class="message-btn-open">
+                <span>📄</span> Open PDF
+              </a>
+              <a href="/api/web/reports/${encodeURIComponent(jobId)}/page-image?page=2&inline=true" target="_blank" rel="noopener noreferrer" class="message-btn-open" style="background:#0f766e;">
+                <span>🖼️</span> View JPEG
+              </a>
+            `;
 
-          // Keep blob URL active for 5 minutes for direct viewing
-          setTimeout(() => {
-            if (_activeBlobUrl === objectUrl) {
-              URL.revokeObjectURL(objectUrl);
-              _activeBlobUrl = null;
+            const msgHtml = `
+              <div style="font-weight:700; color:#14532d; font-size:0.95rem;">
+                GP ATTENDANCE &amp; DSR REPORT (Page 2) downloaded automatically in JPEG format!
+              </div>
+              <div style="font-size:0.82rem; font-weight:500; color:#166534; margin-top:3px;">
+                📁 ${imgFileName} &bull; Click &ldquo;Download PDF&rdquo; below to download the full PDF report.
+              </div>
+            `;
+
+            showMessage(messageEl, msgHtml, 'success', actionButtonsHtml);
+            showToastSuccess(
+              'JPEG Report Downloaded!',
+              `${imgFileName} saved to Downloads. Click 'Download PDF' for full document.`,
+              imgFileName,
+              pdfViewUrl,
+              () => window.downloadReportPdf(jobId, pdfFallbackName)
+            );
+          } else {
+            // District mode: Automatically download PDF
+            showToastLoading('Downloading PDF Report...', 'Fetching generated document...');
+            showMessage(messageEl, 'Report ready! Fetching and downloading PDF…', 'info');
+
+            const pdfResponse = await fetch(`/api/web/reports/${encodeURIComponent(jobId)}/download`, {
+              credentials: 'same-origin'
+            });
+            if (!pdfResponse.ok) await readResponse(pdfResponse);
+            const blob = await pdfResponse.blob();
+
+            if (_activeBlobUrl) {
+              try { URL.revokeObjectURL(_activeBlobUrl); } catch(e){}
             }
-          }, 300000);
+            const objectUrl = URL.createObjectURL(blob);
+            _activeBlobUrl = objectUrl;
+
+            const disposition = pdfResponse.headers.get('Content-Disposition') || '';
+            const fileName = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || fallbackFilename;
+
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+            const actionButtonsHtml = `
+              <a href="${pdfViewUrl}" target="_blank" rel="noopener noreferrer" class="message-btn-open">
+                <span>📄</span> Open PDF
+              </a>
+            `;
+            const msgHtml = `
+              <div style="font-weight:700; color:#14532d;">District PS Attendance Report downloaded successfully!</div>
+              <div style="font-size:0.82rem; font-weight:500; color:#166534; margin-top:2px;">📁 ${fileName}</div>
+            `;
+            showMessage(messageEl, msgHtml, 'success', actionButtonsHtml);
+            showToastSuccess('Download Complete!', `${fileName} saved to Downloads.`, fileName, pdfViewUrl);
+
+            setTimeout(() => {
+              if (_activeBlobUrl === objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+                _activeBlobUrl = null;
+              }
+            }, 300000);
+          }
         } catch (error) {
           const errMsg = error.message || 'Report generation failed.';
           showToastError('Report Generation Failed', errMsg);
@@ -1436,6 +1538,55 @@ def create_app(
     @api.get("/api/web/reports/{job_id}/view", include_in_schema=False)
     def view_web_report(job_id: str, request: Request) -> Response:
         return download_web_report(job_id, request, inline=True)
+
+    @api.get("/api/web/reports/{job_id}/download-image", include_in_schema=False)
+    @api.get("/api/web/reports/{job_id}/page-image", include_in_schema=False)
+    def download_web_report_page_image(
+        job_id: str,
+        request: Request,
+        page: int = 2,
+        inline: bool = False,
+    ) -> Response:
+        record = _get_web_job(job_id, request)
+        if record.status != "Completed" or not record.output_pdf:
+            raise HTTPException(status_code=409, detail=f"Report is not ready (status: {record.status}).")
+        try:
+            pdf_bytes = storage.read_pdf(record.output_pdf, record.local_pdf_path)
+        except Exception as exc:
+            status_code, message = _safe_error(exc)
+            raise HTTPException(status_code=status_code, detail=message) from None
+
+        try:
+            import pymupdf
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            total_pages = len(doc)
+            if total_pages == 0:
+                raise ValueError("PDF document has no pages.")
+            page_idx = (page - 1) if (1 <= page <= total_pages) else (total_pages - 1)
+            pdf_page = doc[page_idx]
+            pix = pdf_page.get_pixmap(dpi=200)
+            jpg_bytes = pix.tobytes("jpeg")
+        except Exception as exc:
+            logger.error("Failed to render PDF page as JPEG: %s", exc)
+            raise HTTPException(status_code=500, detail=f"Failed to render image: {exc}") from None
+
+        base_name = _record_report_filename(record)
+        if base_name.endswith(".pdf"):
+            base_name = base_name[:-4]
+        if "Attendance_Report" in base_name:
+            jpg_filename = base_name.replace("Attendance_Report", "GP_Attendance_DSR_Report") + ".jpg"
+        else:
+            jpg_filename = f"{base_name}_GP_Attendance_DSR_Page{page}.jpg"
+
+        disposition = "inline" if inline else "attachment"
+        return Response(
+            content=jpg_bytes,
+            media_type="image/jpeg",
+            headers={
+                "Content-Disposition": f'{disposition}; filename="{jpg_filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
+        )
 
     @api.post("/api/web/reports/auto-load", status_code=200, include_in_schema=False)
     def auto_load_web_report(

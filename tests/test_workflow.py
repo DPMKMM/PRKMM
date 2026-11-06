@@ -703,4 +703,37 @@ def test_mandal_report_excludes_ps_name_and_mobile(tmp_path: Path):
     assert "Panchayat Secretary Name" not in text
     assert "Mobile Number" not in text
 
+def test_mandal_report_page2_jpeg_download(tmp_path: Path):
+    app = create_app(make_settings(tmp_path))
+    client = TestClient(app)
+    raw_bytes = bytes_for(attendance_rows(), ".xlsx")
+
+    resp_mandal = client.post(
+        "/api/web/reports",
+        files={
+            "file": ("attendance.xlsx", raw_bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+        },
+        data={"report_mode": "mandal", "mandal_name": "Mandal A"},
+    )
+    assert resp_mandal.status_code == 200
+    mandal_job_id = resp_mandal.json()["job_id"]
+
+    # Download Page 2 JPEG
+    img_resp = client.get(f"/api/web/reports/{mandal_job_id}/page-image?page=2")
+    assert img_resp.status_code == 200
+    assert img_resp.headers["content-type"] == "image/jpeg"
+    assert "GP_Attendance_DSR_Report" in img_resp.headers["content-disposition"]
+    assert img_resp.headers["content-disposition"].endswith('.jpg"')
+    assert img_resp.content.startswith(b"\xff\xd8\xff")
+    assert len(img_resp.content) > 10_000
+
+    # Also test download-image endpoint alias
+    dl_img_resp = client.get(f"/api/web/reports/{mandal_job_id}/download-image?page=2")
+    assert dl_img_resp.status_code == 200
+    assert dl_img_resp.headers["content-type"] == "image/jpeg"
+
+    # Full PDF download must still work
+    pdf_resp = client.get(f"/api/web/reports/{mandal_job_id}/download")
+    assert pdf_resp.status_code == 200
+    assert pdf_resp.content.startswith(b"%PDF")
 
