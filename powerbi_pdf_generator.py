@@ -142,13 +142,14 @@ def create_donut_img(demand: float, coll: float, bal: float) -> ImageReader:
     labels = ["Demand", "Collection", "Balance"]
     vals = [max(1.0, float(demand)), max(1.0, float(coll)), max(1.0, float(bal))]
     cols = ["#002060", "#008000", "#ED7D31"]
-    wedges, _ = ax.pie(vals, colors=cols, startangle=90, wedgeprops=dict(width=0.45, edgecolor="w"))
+    radius = 0.82
+    wedges, _ = ax.pie(vals, colors=cols, startangle=90, radius=radius, wedgeprops=dict(width=radius * 0.48, edgecolor="w"))
     fig.suptitle("Overall DCB Breakdown", fontsize=8.2, fontweight="bold", y=0.98)
     ax.legend(
         wedges,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.05),
+        bbox_to_anchor=(0.5, 1.01),
         ncol=3,
         fontsize=6.5,
         frameon=False,
@@ -156,7 +157,7 @@ def create_donut_img(demand: float, coll: float, bal: float) -> ImageReader:
         handletextpad=0.35,
         columnspacing=0.9,
     )
-    fig.subplots_adjust(top=0.82, bottom=0.04, left=0.04, right=0.96)
+    fig.subplots_adjust(top=0.79, bottom=0.04, left=0.04, right=0.96)
     buf = io.BytesIO()
     plt.savefig(buf, format="png", dpi=150, bbox_inches="tight", transparent=True)
     plt.close(fig)
@@ -530,7 +531,7 @@ def get_or_generate_powerbi_pdf(
     reports_dir = base_dir / "data" / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
     pdf_filename = f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}.pdf"
-    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}_v5.pdf"
+    cache_path = reports_dir / f"{safe_dist}{safe_mandal}_PowerBI_DCB_Report_{date_str}_v6.pdf"
 
     if not force_regenerate and cache_path.exists() and cache_path.stat().st_size > 10_000:
         return pdf_filename, cache_path.read_bytes()
