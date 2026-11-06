@@ -20,6 +20,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 RAW_TAX_FILE = DATA_DIR / "allgpdata_raw.xls"
 SEED_TAX_FILE = DATA_DIR / "bundled_dcb_seed.csv.gz"
+CACHED_TAX_FILE = DATA_DIR / "cached_dcb.csv.gz"
 
 URL_ALL_GP_DATA = "https://epanchayat.telangana.gov.in/epmis/allgpdata.jsp"
 URL_DISTRICT_LIVE = "https://epanchayat.telangana.gov.in/epmis/epmisPRHTAXDCBLive.jsp"
@@ -164,33 +165,36 @@ def get_df(force_reload: bool = False) -> pd.DataFrame:
     if _DF_CACHE is not None and not force_reload and (time.time() - _LAST_FETCH_TIME < 300):
         return _DF_CACHE
 
-    # Instant bootstrap: if no cache is loaded and not forcing reload, prime from seed file (<0.1s)
-    if _DF_CACHE is None and not force_reload and SEED_TAX_FILE.exists() and SEED_TAX_FILE.stat().st_size > 10_000:
-        try:
-            logger.info("Fast bootstrap: loading seed DCB dataset from %s", SEED_TAX_FILE.name)
-            seed_df = pd.read_csv(SEED_TAX_FILE)
-            _DF_CACHE = _sanitize_df(seed_df)
-            _LAST_FETCH_TIME = time.time() - 240
-            return _DF_CACHE
-        except Exception as seed_err:
-            logger.warning("Could not read seed file: %s", seed_err)
+    # Instant bootstrap: if no cache is loaded and not forcing reload, prime from disk (<0.1s)
+    if _DF_CACHE is None and not force_reload:
+        for f in [CACHED_TAX_FILE, SEED_TAX_FILE]:
+            if f.exists() and f.stat().st_size > 10_000:
+                try:
+                    logger.info("Fast bootstrap: loading DCB dataset from %s", f.name)
+                    seed_df = pd.read_csv(f)
+                    _DF_CACHE = _sanitize_df(seed_df)
+                    _LAST_FETCH_TIME = time.time() - 240
+                    return _DF_CACHE
+                except Exception as seed_err:
+                    logger.warning("Could not read bootstrap file %s: %s", f.name, seed_err)
 
     try:
         raw = get_raw_data_bytes(force_download=force_reload)
         _DF_CACHE = parse_and_clean_data(raw)
         try:
-            _DF_CACHE.to_csv(SEED_TAX_FILE, index=False, compression="gzip")
+            _DF_CACHE.to_csv(CACHED_TAX_FILE, index=False, compression="gzip")
         except Exception:
             pass
     except Exception as exc:
         logger.warning("Could not refresh live data from portal: %s", exc)
         if _DF_CACHE is not None:
             return _DF_CACHE
-        if SEED_TAX_FILE.exists() and SEED_TAX_FILE.stat().st_size > 10_000:
-            logger.info("Loading fallback seed dataset from %s", SEED_TAX_FILE.name)
-            seed_df = pd.read_csv(SEED_TAX_FILE)
-            _DF_CACHE = _sanitize_df(seed_df)
-            return _DF_CACHE
+        for f in [CACHED_TAX_FILE, SEED_TAX_FILE]:
+            if f.exists() and f.stat().st_size > 10_000:
+                logger.info("Loading fallback dataset from %s", f.name)
+                seed_df = pd.read_csv(f)
+                _DF_CACHE = _sanitize_df(seed_df)
+                return _DF_CACHE
         raise RuntimeError(f"Could not fetch live data from Telangana e-Panchayat portal: {exc}") from exc
 
     return _DF_CACHE
